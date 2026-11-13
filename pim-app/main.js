@@ -13,8 +13,8 @@ const upload = require('./lib/upload');
 if (!app.requestSingleInstanceLock()) app.quit();
 app.setAppUserModelId('de.pim.island');
 
-const SIZE = { collapsed: { w: 300, h: 38 }, expanded: { w: 640, h: 360 } };
-let win = null, tray = null, expanded = false;
+const PILL = { w: 320, h: 46 };
+let win = null, tray = null;
 
 /* ---------- settings (userData/settings.json) ---------- */
 const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
@@ -37,16 +37,27 @@ const publicTargets = () => ({
 const passOf = t => (t && t.passEnc ? safeStorage.decryptString(Buffer.from(t.passEnc, 'base64')) : '');
 
 /* ---------- window ---------- */
+// The renderer asks for the size of the current menu; the window grows and shrinks toward it in a few frames,
+// always centered on the top edge of the primary screen.
+let cur = { ...PILL }, target = { ...PILL }, sizeTimer = null;
 function place() {
-  if (!win) return;
+  if (!win || win.isDestroyed()) return;
   const d = screen.getPrimaryDisplay().bounds;
-  const s = expanded ? SIZE.expanded : SIZE.collapsed;
-  win.setBounds({ x: Math.round(d.x + (d.width - s.w) / 2), y: d.y, width: s.w, height: s.h });
+  win.setBounds({ x: Math.round(d.x + (d.width - cur.w) / 2), y: d.y, width: cur.w, height: cur.h });
+}
+function resizeTo(w, h) {
+  target = { w, h };
+  if (!sizeTimer) sizeTimer = setInterval(() => {
+    const step = (a, z) => (Math.abs(z - a) <= 2 ? z : Math.round(a + (z - a) * 0.38));
+    cur = { w: step(cur.w, target.w), h: step(cur.h, target.h) };
+    place();
+    if (cur.w === target.w && cur.h === target.h) { clearInterval(sizeTimer); sizeTimer = null; }
+  }, 16);
 }
 
 function createWindow() {
   win = new BrowserWindow({
-    ...SIZE.collapsed, frame: false, transparent: true, resizable: false, movable: false,
+    width: PILL.w, height: PILL.h, frame: false, transparent: true, resizable: false, movable: false,
     minimizable: false, maximizable: false, fullscreenable: false, skipTaskbar: true, hasShadow: false,
     alwaysOnTop: true, show: false, backgroundColor: '#00000000',
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false },
@@ -170,7 +181,10 @@ async function runUploads(files, targetId) {
 /* ---------- IPC ---------- */
 function ipc() {
   const str = v => typeof v === 'string';
-  ipcMain.on('expand', (_e, on) => { if (expanded !== !!on) { expanded = !!on; place(); } });
+  ipcMain.on('size', (_e, s) => {
+    if (!s || !Number.isFinite(s.w) || !Number.isFinite(s.h)) return;
+    resizeTo(Math.round(Math.min(900, Math.max(120, s.w))), Math.round(Math.min(600, Math.max(30, s.h))));
+  });
   ipcMain.on('media', (_e, cmd) => sys.send(cmd));
   ipcMain.on('steam:open', () => shell.openExternal('steam://open/downloads'));
 
@@ -251,17 +265,8 @@ function ipc() {
     const r = await dialog.showOpenDialog(win, { properties: ['openDirectory', 'createDirectory'] });
     return r.canceled ? null : r.filePaths[0];
   });
-  ipcMain.handle('pick:files', async () => {
-    const r = await dialog.showOpenDialog(win, { properties: ['openFile', 'multiSelections'] });
-    if (!r.canceled) runUploads(r.filePaths);
-  });
   ipcMain.on('upload', (_e, files, targetId) => {
     if (Array.isArray(files)) runUploads(files.filter(f => str(f) && path.isAbsolute(f)), str(targetId) ? targetId : null);
-  });
-  ipcMain.on('reveal', (_e, location) => {
-    if (!str(location)) return;
-    if (/^https?:\/\//.test(location)) clipboard.writeText(location); // WebDAV: copy the link
-    else shell.showItemInFolder(location);
   });
 }
 
@@ -285,6 +290,14 @@ app.whenReady().then(() => {
   steam.watch(list => { snap.steam = list; send('steam', list); });
   battery.watch(list => { snap.bt = list; send('bt', list); });
   upd = updater.start(u => send('update', u));
+  // global cursor for Pim's eyes, in window coordinates; only while Pim is visible
+  let lastCursor = '';
+  setInterval(() => {
+    if (!win || win.isDestroyed() || !win.isVisible()) return;
+    const p = screen.getCursorScreenPoint(), b = win.getBounds();
+    const rel = { x: p.x - b.x, y: p.y - b.y }, key = rel.x + ',' + rel.y;
+    if (key !== lastCursor) { lastCursor = key; send('cursor', rel); }
+  }, 50);
   setInterval(() => { if (Date.now() - bridgeSeen > 3000) pollClipboard(); }, 700); // fallback without the bridge
 });
 app.on('second-instance', () => { userHidden = false; applyVisibility(); });

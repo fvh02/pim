@@ -3,7 +3,7 @@
 #   vol/muted master volume of the default output device (Core Audio)
 #   busy      a fullscreen game, fullscreen video or presentation is in front (game mode)
 #   clipSeq   clipboard sequence number, so Electron reads the clipboard only when it changed
-# Commands on stdin: toggle | next | prev | vol <0..1> | mute <0|1>
+# Commands on stdin: toggle | next | prev | seek <±seconds> | vol <0..1> | mute <0|1>
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
 Add-Type -AssemblyName System.Runtime.WindowsRuntime
@@ -84,6 +84,14 @@ while ($true) {
               'toggle' { $null = Await ($s.TryTogglePlayPauseAsync()) ([bool]) }
               'next' { $null = Await ($s.TrySkipNextAsync()) ([bool]) }
               'prev' { $null = Await ($s.TrySkipPreviousAsync()) ([bool]) }
+              'seek' {
+                # timeline position is a snapshot from LastUpdatedTime; add the time played since then
+                $tl = $s.GetTimelineProperties()
+                $pos = $tl.Position.TotalSeconds
+                if ($s.GetPlaybackInfo().PlaybackStatus.ToString() -eq 'Playing') { $pos += ([DateTimeOffset]::Now - $tl.LastUpdatedTime).TotalSeconds }
+                $to = [math]::Max(0, [math]::Min($tl.EndTime.TotalSeconds, $pos + [double]::Parse($parts[1], [Globalization.CultureInfo]::InvariantCulture)))
+                $null = Await ($s.TryChangePlaybackPositionAsync([long]($to * 10000000))) ([bool])
+              }
             }
           }
         }

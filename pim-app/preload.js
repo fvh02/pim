@@ -2,9 +2,9 @@ const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 const on = ch => cb => ipcRenderer.on(ch, (_e, data) => cb(data));
 contextBridge.exposeInMainWorld('pim', {
-  expand: on => ipcRenderer.send('expand', on),
+  size: s => ipcRenderer.send('size', s),
   snapshot: () => ipcRenderer.invoke('snapshot'),
-  onMedia: on('media'), onSteam: on('steam'), onClips: on('clips'), onUpload: on('upload'), onSys: on('sys'), onBt: on('bt'), onUpdate: on('update'),
+  onMedia: on('media'), onSteam: on('steam'), onClips: on('clips'), onUpload: on('upload'), onSys: on('sys'), onBt: on('bt'), onUpdate: on('update'), onCursor: on('cursor'),
   updateCheck: () => ipcRenderer.send('update:check'),
   updateInstall: () => ipcRenderer.send('update:install'),
   media: cmd => ipcRenderer.send('media', cmd),
@@ -24,7 +24,5 @@ contextBridge.exposeInMainWorld('pim', {
   setDefault: id => ipcRenderer.invoke('targets:default', id),
   testTarget: (t, pass) => ipcRenderer.invoke('targets:test', t, pass),
   pickFolder: () => ipcRenderer.invoke('pick:folder'),
-  pickFiles: () => ipcRenderer.invoke('pick:files'),
   upload: (files, targetId) => ipcRenderer.send('upload', [...files].map(f => webUtils.getPathForFile(f)).filter(Boolean), targetId),
-  reveal: location => ipcRenderer.send('reveal', location),
 });

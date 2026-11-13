@@ -1,7 +1,7 @@
 {
   "name": "pim",
   "productName": "Pim",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Pim: Notch-Island am oberen Bildschirmrand für Windows. Musiksteuerung, Zwischenablage, Steam-Downloads, Datei-Upload.",
   "main": "main.js",
   "license": "UNLICENSED",

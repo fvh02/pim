@@ -35,10 +35,11 @@ function start(onState) {
   run();
 
   return {
-    // cmd: 'toggle' | 'next' | 'prev' | ['vol', 0..1] | ['mute', bool]
+    // cmd: 'toggle' | 'next' | 'prev' | 'back' | 'fwd' (±10 s) | ['vol', 0..1] | ['mute', bool]
     send(cmd) {
       if (!child) return;
       if (COMMANDS.has(cmd)) child.stdin.write(cmd + '\n');
+      else if (cmd === 'back' || cmd === 'fwd') child.stdin.write(`seek ${cmd === 'back' ? -10 : 10}\n`);
       else if (Array.isArray(cmd) && cmd[0] === 'vol' && Number.isFinite(cmd[1])) child.stdin.write(`vol ${Math.max(0, Math.min(1, cmd[1])).toFixed(3)}\n`);
       else if (Array.isArray(cmd) && cmd[0] === 'mute') child.stdin.write(`mute ${cmd[1] ? 1 : 0}\n`);
     },

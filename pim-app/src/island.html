@@ -12,98 +12,82 @@
     <canvas id="pim" aria-label="Pim"></canvas>
     <div class="status"><span id="statusText"></span></div>
     <div class="eq" id="eq" hidden><i></i><i></i><i></i></div>
-    <nav class="tabs" role="tablist">
-      <button role="tab" data-tab="music">Musik</button>
-      <button role="tab" data-tab="clips">Zwischenablage</button>
-      <button role="tab" data-tab="steam">Steam</button>
-      <button role="tab" data-tab="upload">Upload</button>
-      <button role="tab" data-tab="storage">Speicher</button>
-      <button role="tab" data-tab="battery">Akku</button>
-      <button role="tab" data-tab="look">Pim</button>
-    </nav>
+    <span class="menu-name" id="menuName"></span>
+    <nav class="menus" id="menus" aria-label="Menüs"></nav>
   </header>
 
-  <main class="body">
+  <main class="body" id="body">
     <section data-panel="music">
-      <div class="empty" id="musicEmpty">Keine Wiedergabe aktiv. Starte Spotify, Apple Music, YouTube im Browser oder einen anderen Player.</div>
-      <div class="music" id="music" hidden>
+      <div class="empty" id="musicEmpty">Keine Wiedergabe aktiv.</div>
+      <div class="player" id="music" hidden>
         <div class="cover" id="cover"></div>
         <div class="meta">
-          <div class="title" id="mTitle"></div>
-          <div class="artist" id="mArtist"></div>
-          <div class="app mono" id="mApp"></div>
-          <div class="progress"><div class="track"><div class="fill" id="mFill"></div></div>
-            <div class="times mono"><span id="mPos">0:00</span><span id="mDur">0:00</span></div></div>
+          <div class="title marq" id="mTitle"></div>
+          <div class="artist marq" id="mArtist"></div>
+          <div class="track"><div class="fill" id="mFill"></div></div>
           <div class="controls">
-            <button data-cmd="prev" aria-label="Zurück">⏮</button>
-            <button data-cmd="toggle" class="play" id="mPlay" aria-label="Wiedergabe/Pause">⏯</button>
-            <button data-cmd="next" aria-label="Weiter">⏭</button>
+            <button class="icon" data-cmd="prev" data-icon="prev" title="Vorheriger Titel"></button>
+            <button class="icon" data-cmd="back" data-icon="back10" title="10 Sekunden zurück"></button>
+            <button class="icon play" data-cmd="toggle" id="mPlay" data-icon="play" title="Wiedergabe/Pause"></button>
+            <button class="icon" data-cmd="fwd" data-icon="fwd10" title="10 Sekunden vor"></button>
+            <button class="icon" data-cmd="next" data-icon="next" title="Nächster Titel"></button>
           </div>
         </div>
-      </div>
-      <div class="volume" id="volume" hidden>
-        <button class="vbtn" id="vMute" aria-label="Stumm schalten">🔊</button>
-        <input type="range" id="vRange" min="0" max="100" step="1" aria-label="Lautstärke">
-        <span class="mono" id="vOut"></span>
       </div>
     </section>
 
     <section data-panel="clips">
-      <div class="row-head"><span class="muted" id="clipCount"></span><button class="link" id="clipClear">Verlauf leeren</button></div>
+      <div class="row-head"><span class="muted" id="clipCount"></span><button class="icon sm" id="clipClear" data-icon="trash" title="Verlauf leeren (Angeheftetes bleibt)"></button></div>
       <ul class="list" id="clipList"></ul>
-      <div class="empty" id="clipEmpty">Noch nichts kopiert. Kopierte Texte und Bilder erscheinen hier. Nur angeheftete (📌) Einträge bleiben nach dem Beenden erhalten.</div>
+      <div class="empty" id="clipEmpty">Noch nichts kopiert. Nur angeheftete Einträge bleiben nach dem Beenden erhalten.</div>
     </section>
 
     <section data-panel="steam">
-      <div class="row-head"><span class="muted">Downloads</span><button class="link" id="steamOpen">Steam-Downloads öffnen</button></div>
+      <div class="row-head"><span class="muted">Downloads</span><button class="icon sm" id="steamOpen" data-icon="external" title="Steam-Downloads öffnen"></button></div>
       <ul class="list" id="steamList"></ul>
       <div class="empty" id="steamEmpty">Keine aktiven Steam-Downloads.</div>
     </section>
 
-    <section data-panel="upload">
-      <div class="row-head"><label class="muted">Ziel <select id="upTarget"></select></label></div>
-      <button class="drop" id="drop">Dateien hierher ziehen oder klicken</button>
-      <ul class="list" id="upList"></ul>
-    </section>
-
     <section data-panel="storage">
-      <div class="storage">
-        <div>
-          <div class="row-head"><span class="muted">Speicherorte</span><button class="link" id="stNew">+ Neu</button></div>
-          <ul class="list" id="stList"></ul>
-          <div class="empty" id="stEmpty">Noch kein Speicher. Wähle rechts eine Vorlage.</div>
-        </div>
-        <form id="stForm" autocomplete="off">
-          <label>Vorlage <select id="fPreset"></select></label>
-          <p class="hint" id="fHint"></p>
-          <label>Name <input id="fName" required></label>
-          <label>Typ <select id="fType"><option value="folder">Ordner / Netzlaufwerk (SMB)</option><option value="webdav">WebDAV</option></select></label>
-          <label data-for="folder">Pfad <span class="inline"><input id="fPath" placeholder="\\fritz.nas\FRITZ.NAS"><button type="button" id="fPick">…</button></span></label>
-          <label data-for="webdav">URL <input id="fUrl" placeholder="https://nas.local/remote.php/dav/files/ich/"></label>
-          <label data-for="webdav">Benutzer <input id="fUser"></label>
-          <label data-for="webdav">Passwort <input id="fPass" type="password" placeholder="unverändert lassen"></label>
-          <div class="actions"><button type="button" id="fTest">Testen</button><button type="submit" class="primary">Speichern</button></div>
+      <div class="row-head"><span class="muted">Speicherorte · Standard per Punkt</span><button class="icon sm" id="stNew" data-icon="plus" title="Neuer Speicherort"></button></div>
+      <ul class="list short" id="stList"></ul>
+      <div class="empty small" id="stEmpty">Noch kein Speicher. Wähle unten eine Vorlage.</div>
+      <form id="stForm" autocomplete="off">
+        <label class="wide">Vorlage <select id="fPreset"></select></label>
+        <p class="hint wide" id="fHint"></p>
+        <label>Name <input id="fName" required></label>
+        <label>Typ <select id="fType"><option value="folder">Ordner / SMB</option><option value="webdav">WebDAV</option></select></label>
+        <label class="wide" data-for="folder">Pfad <span class="inline"><input id="fPath" placeholder="\\fritz.nas\FRITZ.NAS"><button type="button" class="icon sm" id="fPick" data-icon="folder" title="Ordner wählen"></button></span></label>
+        <label class="wide" data-for="webdav">URL <input id="fUrl" placeholder="https://nas.local/dav/"></label>
+        <label data-for="webdav">Benutzer <input id="fUser"></label>
+        <label data-for="webdav">Passwort <input id="fPass" type="password"></label>
+        <div class="actions wide">
           <p class="msg" id="fMsg" role="status"></p>
-        </form>
-      </div>
+          <button type="button" class="icon sm" id="fTest" data-icon="signal" title="Verbindung testen"></button>
+          <button type="submit" class="icon sm primary" data-icon="check" title="Speichern"></button>
+        </div>
+      </form>
     </section>
 
     <section data-panel="battery">
       <ul class="list" id="batList"></ul>
-      <div class="empty" id="batEmpty">Kein Akku gefunden. Bluetooth-Kopfhörer erscheinen hier, sobald sie verbunden sind.</div>
+      <div class="empty" id="batEmpty">Kein Akku gefunden.</div>
     </section>
 
     <section data-panel="look">
       <div class="look">
-        <label>Accessoire <select id="pAcc"></select></label>
-        <div class="field"><span>Farbe</span><div class="swatches" id="pColors"></div></div>
-        <div class="field"><span>Updates</span><div class="update"><span id="uText" role="status"></span><button type="button" class="ubtn" id="uBtn" hidden></button></div></div>
-        <label class="check"><input type="checkbox" id="pGame"> Spielmodus: Pim bei Vollbild-Spielen, -Videos und Präsentationen ausblenden</label>
+        <label class="row">Accessoire <select id="pAcc"></select></label>
+        <div class="row"><span>Farbe</span><div class="swatches" id="pColors"></div></div>
+        <label class="row">Spielmodus <input type="checkbox" id="pGame" title="Bei Vollbild-Spielen, -Videos und Präsentationen ausblenden"></label>
+        <div class="row"><span id="uText" role="status"></span><button type="button" class="icon sm" id="uBtn" hidden></button></div>
       </div>
     </section>
   </main>
+
+  <canvas id="drop" aria-hidden="true"></canvas>
 </div>
 <script src="pim.js"></script>
+<script src="drop.js"></script>
 <script src="island.js"></script>
 </body>
 </html>

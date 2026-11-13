@@ -2,21 +2,33 @@
 
 Pim ist eine Island am oberen Bildschirmrand von Windows, wie die Notch beim Mac. Zugeklappt ist sie eine schwarze Pille mit dem Maskottchen Pim und einer Statuszeile. Fährt die Maus darüber, klappt sie auf.
 
-## Funktionen
+## Bedienung
 
-| Tab | Was es tut |
+| Aktion | Wirkung |
 |---|---|
-| **Musik** | Zeigt Titel, Interpret, Cover und Fortschritt des aktuellen Players. Zurück, Play/Pause und Weiter steuern ihn live. Funktioniert mit jedem Player, der die Windows-Mediensteuerung nutzt: Spotify, Apple Music, YouTube/Netflix im Browser, VLC und andere. Darunter ein Regler für die Systemlautstärke mit Stummschalter. Das Mausrad über der Pille ändert die Lautstärke ebenfalls. |
-| **Zwischenablage** | Die letzten 50 kopierten Texte und 10 Bilder. Ein Klick kopiert einen Eintrag erneut. Bilder lassen sich mit ↑ direkt auf den Standardspeicher hochladen. Der Verlauf liegt nur im Arbeitsspeicher, damit kopierte Passwörter nie auf der Festplatte landen. Mit 📌 angeheftete Einträge bleiben dauerhaft und werden gespeichert: Texte in `settings.json`, Bilder als PNG. |
-| **Steam** | Laufende Steam-Downloads mit Prozent, Größe und Geschwindigkeit. Liest die `appmanifest_*.acf` aller Steam-Bibliotheken, ein Login ist nicht nötig. |
-| **Upload** | Dateien auf die Island ziehen oder klicken. Sie werden auf den gewählten Speicher hochgeladen. Vorhandene Dateien werden nie überschrieben, Pim hängt dann „(1)“ an. |
-| **Speicher** | Speicherorte einrichten und den Standard wählen. |
-| **Akku** | Laptop-Akku mit Restzeit sowie Bluetooth-Kopfhörer und -Headsets mit Ladestand. Fällt ein Akku unter 20 % (Laptop) oder 15 % (Bluetooth), zeigt die Pille eine Warnung. |
-| **Pim** | Accessoire wählen (Mütze, Krone, Brille …) oder automatisch nach Jahreszeit: Hexenhut Ende Oktober, Weihnachtsmütze im Dezember, Partyhut an Silvester, Mütze im Winter. Grundfarbe wählen. Spielmodus ein- oder ausschalten. |
+| Maus über die Pille | Nichts klappt auf. Die Pille zeigt den Status, z. B. Song, Steam-Download, Upload. |
+| **Strg halten** und Maus über die Pille | Das Menü klappt auf. |
+| **Strg + Mausrad** | Blättert durch die Menüs. Das Fenster passt seine Größe an das jeweilige Menü an. |
+| Mausrad über der zugeklappten Pille | Systemlautstärke |
+| Datei auf die Pille ziehen | Ein offener weißer Karton erscheint. Beim Loslassen schließt er sich, ein Papierflieger fliegt aus der Notch, und die Datei wird auf den Standardspeicher hochgeladen. Fortschritt und Ergebnis zeigt die Pille. |
+| `Esc` oder Maus weg | Klappt zu. |
 
-**Spielmodus:** Läuft ein Spiel, ein Video oder eine Präsentation im Vollbild, blendet sich Pim aus. Danach erscheint es wieder. Pim fragt dafür denselben Status ab, den Windows für „Bitte nicht stören“ nutzt.
+## Menüs
 
-Pim reagiert auf das, was passiert. Bei Musik tanzt es, bei Steam-Downloads arbeitet es, beim Upload wird es zur Kiste, bei leerem Akku sackt es zusammen. Nach 5 Minuten Ruhe schläft es ein.
+| Menü | Was es tut |
+|---|---|
+| **Musik** | Kleiner Player für den aktuellen Song: Cover, Titel, Fortschritt, vorheriger Titel, 10 s zurück, Play/Pause, 10 s vor, nächster Titel. Funktioniert mit jedem Player, der die Windows-Mediensteuerung nutzt: Spotify, Apple Music, YouTube/Netflix im Browser, VLC und andere. |
+| **Zwischenablage** | Die letzten 50 kopierten Texte und 10 Bilder. Ein Klick kopiert einen Eintrag erneut, Bilder lassen sich direkt hochladen. Der Verlauf liegt nur im Arbeitsspeicher, damit kopierte Passwörter nie auf der Festplatte landen. Angeheftete Einträge bleiben dauerhaft und werden gespeichert: Texte in `settings.json`, Bilder als PNG. |
+| **Steam** | Laufende Steam-Downloads, eine Zeile pro Spiel: Titel, Balken, Größe, Tempo. Lange Titel enden mit „…“ und laufen beim Darüberfahren durch. |
+| **Speicher** | Speicherorte einrichten und den Standard für Uploads wählen. |
+| **Akku** | Laptop-Akku mit Restzeit sowie Bluetooth-Kopfhörer und -Headsets. Unter 20 % (Laptop) oder 15 % (Bluetooth) warnt die Pille. |
+| **Pim** | Accessoire (oder automatisch nach Jahreszeit), Farbe, Spielmodus, Updates. |
+
+Alle Knöpfe sind Symbole. Beim Darüberfahren zeigt ein Tooltip, was sie tun.
+
+**Spielmodus:** Läuft ein Spiel, ein Video oder eine Präsentation im Vollbild, blendet sich Pim aus. Danach erscheint es wieder.
+
+Im Grundzustand ist Pim weiß und atmet und blinzelt. Seine Augen folgen dann dem Mauszeiger auf dem ganzen Bildschirm, ebenso bei kurzen Reaktionen wie „kopiert“, „Upload fertig“ oder beim Drag & Drop. Ansonsten reagiert Pim auf das, was passiert. Bei Musik tanzt es, bei Steam-Downloads arbeitet es, beim Upload wird es zur Kiste, bei leerem Akku sackt es zusammen. Nach 5 Minuten Ruhe schläft es ein.
 
 ### Speicherorte
 
@@ -68,6 +80,7 @@ Die Windows-Builds entstehen auch automatisch in GitHub Actions (Workflow „Pim
 | `lib/upload.js` | Upload in Ordner/SMB und per WebDAV |
 | `src/pim.js` | Pim zeichnen (Canvas, ohne Bilder) |
 | `src/island.*` | Oberfläche der Island |
+| `src/drop.js` | Karton- und Papierflieger-Animation beim Drag & Drop |
 
 ## Grenzen
 
@@ -75,6 +88,8 @@ Die Windows-Builds entstehen auch automatisch in GitHub Actions (Workflow „Pim
 - Steam schreibt den Fortschritt nur alle paar Sekunden. Prozent und Tempo springen deshalb.
 - Kein direkter API-Zugang zu Dropbox, Google Drive oder iCloud. Dafür braucht es die jeweilige Desktop-App.
 - Die Zwischenablage erfasst Text und Bilder, keine Dateien. Kopiert ein Programm beides (z. B. Excel), zählt der Text.
-- Der Lautstärkeregler steuert das Standard-Ausgabegerät, nicht einzelne Apps.
+- Das Mausrad steuert die Lautstärke des Standard-Ausgabegeräts, nicht einzelner Apps.
+- 10 s vor/zurück funktioniert nur, wenn der Player das Springen über Windows erlaubt. Browser tun das meist, Spotify nicht immer.
+- Ordner lassen sich nicht hochladen, nur Dateien.
 - Den Bluetooth-Akku sieht Pim nur bei Geräten, die ihn an Windows melden (die meisten Kopfhörer). Viele Mäuse, Tastaturen und Xbox-Controller melden ihn nicht. Der Wert wird jede Minute aktualisiert.
 - Die Builds sind nicht signiert. Windows SmartScreen fragt beim ersten Start nach („Weitere Informationen“, dann „Trotzdem ausführen“).
