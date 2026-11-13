@@ -31,7 +31,7 @@ const STATES = {
   upload:      { tint: '#f1f2f5', eyes: 'dot', morph: 1, fx: 'paper', motion: 'hop', desc: 'Pushing or uploading. Morphs into a box with a lid.' },
   dancing:     { tint: '#f1f2f5', eyes: 'happy', motion: 'dance', fx: 'notes', blush: 0.4, mouth: 'smile', desc: 'Long task done. Celebration.' },
 };
-const ACCS = ['beanie', 'santa hat', 'party hat', 'crown', 'witch hat', 'sunglasses', 'glasses', 'scarf', 'pumpkin', 'bow'];
+const ACCS = ['beanie', 'santa hat', 'party hat', 'crown', 'witch hat', 'sunglasses', 'glasses', 'scarf', 'pumpkin', 'bow', 'headphones', 'headset', 'coffee'];
 for (const k in STATES) STATES[k].rgb = hex(STATES[k].tint);
 
 /* ---------- geometry ---------- */
@@ -221,6 +221,41 @@ function drawAcc(ctx, acc, rx, ry, R, t, eyes) {
       ctx.restore();
       ctx.fillStyle = '#4f8a3a'; rrect(ctx, -0.05 * R, top - 0.2 * R, 0.1 * R, 0.26 * R, 0.04 * R); ctx.fill();
       ctx.beginPath(); ctx.ellipse(0.14 * R, top - 0.1 * R, 0.12 * R, 0.05 * R, -0.4, 0, TAU); ctx.fill();
+      break;
+    }
+    case 'headphones':
+    case 'headset': {
+      // band over the head, cups on the sides; the headset adds a microphone boom
+      ctx.strokeStyle = '#2a2e38'; ctx.lineWidth = 0.13 * R;
+      ctx.beginPath(); ctx.ellipse(0, -ry * 0.05, rx * 1.02, ry * 1.08, 0, Math.PI * 1.08, Math.PI * 1.92); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 0.035 * R;
+      ctx.beginPath(); ctx.ellipse(0, -ry * 0.05, rx * 1.02, ry * 1.08, 0, Math.PI * 1.2, Math.PI * 1.5); ctx.stroke();
+      const cup = acc === 'headset' ? '#e2394f' : '#3b7bff';
+      [-1, 1].forEach(sd => {
+        ctx.fillStyle = '#2a2e38'; rrect(ctx, sd * rx * 1.02 - 0.14 * R, -0.3 * R, 0.28 * R, 0.56 * R, 0.12 * R); ctx.fill();
+        ctx.fillStyle = cup; rrect(ctx, sd * rx * 1.02 - 0.1 * R, -0.24 * R, 0.2 * R, 0.44 * R, 0.09 * R); ctx.fill();
+      });
+      if (acc === 'headset') {
+        ctx.strokeStyle = '#2a2e38'; ctx.lineWidth = 0.05 * R;
+        ctx.beginPath(); ctx.moveTo(-rx * 1.02, 0.2 * R); ctx.quadraticCurveTo(-rx * 0.9, ry * 0.75, -rx * 0.35, ry * 0.62); ctx.stroke();
+        ctx.fillStyle = '#2a2e38'; ctx.beginPath(); ctx.ellipse(-rx * 0.32, ry * 0.62, 0.08 * R, 0.06 * R, 0, 0, TAU); ctx.fill();
+      }
+      break;
+    }
+    case 'coffee': {
+      // mug next to Pim with rising steam
+      const x = rx * 0.98, y = ry * 0.28, w = 0.36 * R, h = 0.42 * R;
+      ctx.fillStyle = '#f4f1ea'; rrect(ctx, x - w / 2, y, w, h, 0.06 * R); ctx.fill();
+      ctx.fillStyle = '#7a4a2a'; ctx.fillRect(x - w / 2 + 0.03 * R, y + 0.03 * R, w - 0.06 * R, 0.06 * R);
+      ctx.strokeStyle = '#f4f1ea'; ctx.lineWidth = 0.05 * R;
+      ctx.beginPath(); ctx.arc(x + w / 2, y + h * 0.45, 0.09 * R, -Math.PI / 2, Math.PI / 2); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 0.03 * R;
+      for (let i = 0; i < 2; i++) {
+        const p = (t * 0.6 + i * 0.5) % 1, sx = x - 0.06 * R + i * 0.12 * R;
+        ctx.globalAlpha = Math.sin(p * Math.PI) * 0.8;
+        ctx.beginPath(); ctx.moveTo(sx, y - 0.02 * R - p * 0.3 * R); ctx.quadraticCurveTo(sx + 0.06 * R, y - 0.1 * R - p * 0.3 * R, sx, y - 0.18 * R - p * 0.3 * R); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
       break;
     }
     case 'bow': {

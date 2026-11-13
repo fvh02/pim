@@ -8,6 +8,8 @@ const steam = require('../lib/steam');
 const upload = require('../lib/upload');
 const battery = require('../lib/battery');
 const downloads = require('../lib/downloads');
+const claude = require('../lib/claude');
+const localsend = require('../lib/localsend');
 
 (async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pim-test-'));
@@ -125,6 +127,65 @@ const downloads = require('../lib/downloads');
   ])), [{ name: 'AirPods Pro', level: 85 }]);
   assert.deepStrictEqual(battery.parseDevices('{"name":"Jabra","level":12,"connected":true}'), [{ name: 'Jabra', level: 12 }]);
   assert.deepStrictEqual(battery.parseDevices(''), []);
+
+  // --- network share root for "net use"
+  assert.strictEqual(upload.shareRoot('\\\\fritz.nas\\FRITZ.NAS\\Fotos'), '\\\\fritz.nas\\FRITZ.NAS');
+  assert.strictEqual(upload.shareRoot('C:\\Daten'), null);
+
+  // --- Claude Code: hook events -> Pim states
+  assert.strictEqual(claude.describe({ hook_event_name: 'PreToolUse', tool_name: 'Grep', tool_input: { pattern: 'x' } }).state, 'searching');
+  assert.strictEqual(claude.describe({ hook_event_name: 'PreToolUse', tool_name: 'Edit', tool_input: { file_path: 'a.js' } }).detail, 'a.js');
+  assert.strictEqual(claude.describe({ hook_event_name: 'Stop' }).state, 'finished');
+  assert.strictEqual(claude.describe({ hook_event_name: 'Notification', message: 'Claude needs your permission to use Bash' }).state, 'approval');
+
+  // --- Claude Code: hook install keeps foreign hooks, replaces old Pim hooks, makes a backup, refuses broken JSON
+  const cfgFile = path.join(tmp, 'claude', 'settings.json');
+  fs.mkdirSync(path.dirname(cfgFile), { recursive: true });
+  fs.writeFileSync(cfgFile, JSON.stringify({ model: 'x', hooks: { Stop: [{ hooks: [{ type: 'command', command: 'echo eigener' }] }, { hooks: [{ type: 'command', command: 'curl old/pim-hook?t=alt' }] }] } }));
+  claude.install('tok', cfgFile);
+  claude.install('tok', cfgFile); // twice: no duplicates
+  const cfg = JSON.parse(fs.readFileSync(cfgFile, 'utf8'));
+  assert.strictEqual(cfg.model, 'x');
+  assert.deepStrictEqual(cfg.hooks.Stop.map(g => g.hooks[0].command.includes('/pim-hook') ? 'pim' : g.hooks[0].command), ['echo eigener', 'pim']);
+  assert.ok(cfg.hooks.Stop[1].hooks[0].command.includes('t=tok'));
+  assert.strictEqual(cfg.hooks.PreToolUse[0].matcher, '*');
+  assert.ok(fs.existsSync(cfgFile + '.pim-backup'));
+  fs.writeFileSync(cfgFile, '{ kaputt');
+  assert.throws(() => claude.install('tok', cfgFile));
+  assert.strictEqual(fs.readFileSync(cfgFile, 'utf8'), '{ kaputt');
+
+  // --- Claude Code: server answers a permission request with the user's decision, rejects a wrong token
+  const evs = [];
+  const srv = claude.start('tok', ev => { evs.push(ev); if (ev.type === 'permission') srv.answer(ev.id, 'allow'); });
+  await new Promise(r => setTimeout(r, 200));
+  const post = (t, body) => fetch(`http://127.0.0.1:${claude.PORT}/pim-hook?t=${t}`, { method: 'POST', body: JSON.stringify(body) });
+  assert.strictEqual((await post('falsch', { hook_event_name: 'Stop' })).status, 404);
+  assert.deepStrictEqual(await (await post('tok', { hook_event_name: 'UserPromptSubmit', session_id: 's' })).json(), {});
+  const perm = await (await post('tok', { hook_event_name: 'PermissionRequest', tool_name: 'Bash', tool_input: { command: 'ls' } })).json();
+  assert.deepStrictEqual(perm, { hookSpecificOutput: { hookEventName: 'PermissionRequest', decision: { behavior: 'allow' } } });
+  assert.deepStrictEqual(evs.map(e => e.type), ['status', 'permission', 'permission-closed']);
+  srv.stop();
+
+  // --- LocalSend: prepare-upload + upload against a fake phone
+  const got = [];
+  const phone = http.createServer((req, res) => {
+    let b = []; req.on('data', c => b.push(c)); req.on('end', () => {
+      const body = Buffer.concat(b);
+      if (req.url.startsWith('/api/localsend/v2/prepare-upload')) {
+        const files = JSON.parse(body).files;
+        got.push(Object.values(files)[0].fileName);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ sessionId: 'S', files: Object.fromEntries(Object.keys(files).map(k => [k, 'T'])) }));
+      }
+      const q = new URL(req.url, 'http://x').searchParams;
+      got.push(`${q.get('sessionId')}/${q.get('token')}/${body.length}`);
+      res.writeHead(200); res.end();
+    });
+  });
+  await new Promise(ok => phone.listen(0, '127.0.0.1', ok));
+  await localsend.send({ ip: '127.0.0.1', port: phone.address().port, protocol: 'http', fingerprint: 'f' }, 'me', [src]);
+  assert.deepStrictEqual(got, ['foto.jpg', 'S/T/300000']);
+  phone.close();
 
   fs.rmSync(tmp, { recursive: true, force: true });
   console.log('alle Tests bestanden');

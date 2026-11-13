@@ -10,6 +10,7 @@
 <div class="island" id="island">
   <header class="bar">
     <canvas id="pim" aria-label="Pim"></canvas>
+    <div class="bubble" id="bubble" role="status" hidden></div>
     <div class="status"><span id="statusText"></span></div>
     <div class="eq" id="eq" hidden><i></i><i></i><i></i></div>
     <span class="menu-name" id="menuName"></span>
@@ -39,6 +40,7 @@
     <section data-panel="clips">
       <div class="row-head"><span class="muted" id="clipCount"></span><button class="icon sm" id="clipClear" data-icon="trash" title="Verlauf leeren (Angeheftetes bleibt)"></button></div>
       <ul class="list" id="clipList"></ul>
+      <div class="qr" id="qrBox" hidden><img id="qrImg" alt="QR-Code"><div class="qr-text" id="qrText"></div><button class="icon sm" id="qrClose" data-icon="close" title="Schließen"></button></div>
       <div class="empty" id="clipEmpty">Noch nichts kopiert. Nur angeheftete Einträge bleiben nach dem Beenden erhalten.</div>
     </section>
 
@@ -52,6 +54,9 @@
       <div class="row-head"><span class="muted">Speicherorte · Standard per Punkt</span><button class="icon sm" id="stNew" data-icon="plus" title="Neuer Speicherort"></button></div>
       <ul class="list short" id="stList"></ul>
       <div class="empty small" id="stEmpty">Noch kein Speicher. Wähle unten eine Vorlage.</div>
+      <div class="row-head"><span class="muted">Handy (LocalSend) · Standard per Punkt</span></div>
+      <ul class="list short" id="phList"></ul>
+      <div class="empty small" id="phEmpty">Kein Handy gefunden. LocalSend am Handy öffnen (gleiches WLAN).</div>
       <form id="stForm" autocomplete="off">
         <label class="wide">Vorlage <select id="fPreset"></select></label>
         <p class="hint wide" id="fHint"></p>
@@ -59,8 +64,9 @@
         <label>Typ <select id="fType"><option value="folder">Ordner / SMB</option><option value="webdav">WebDAV</option></select></label>
         <label class="wide" data-for="folder">Pfad <span class="inline"><input id="fPath" placeholder="\\fritz.nas\FRITZ.NAS"><button type="button" class="icon sm" id="fPick" data-icon="folder" title="Ordner wählen"></button></span></label>
         <label class="wide" data-for="webdav">URL <input id="fUrl" placeholder="https://nas.local/dav/"></label>
-        <label data-for="webdav">Benutzer <input id="fUser"></label>
-        <label data-for="webdav">Passwort <input id="fPass" type="password"></label>
+        <label class="wide check-row" data-for="folder"><input type="checkbox" id="fAuth"> Anmeldung nötig (z. B. FRITZ!NAS, TrueNAS)</label>
+        <label data-for="cred">Benutzer <input id="fUser"></label>
+        <label data-for="cred">Passwort <input id="fPass" type="password"></label>
         <div class="actions wide">
           <p class="msg" id="fMsg" role="status"></p>
           <button type="button" class="icon sm" id="fTest" data-icon="signal" title="Verbindung testen"></button>
@@ -72,12 +78,37 @@
     <section data-panel="battery">
       <ul class="list" id="batList"></ul>
       <div class="empty" id="batEmpty">Kein Akku gefunden.</div>
+      <div class="row-head"><span class="muted">Bluetooth-Audio</span><span class="inline"><button class="icon sm" id="btRefresh" data-icon="refresh" title="Neu suchen"></button><button class="icon sm" id="btSettings" data-icon="external" title="Bluetooth-Einstellungen von Windows"></button></span></div>
+      <ul class="list short" id="btList"></ul>
+      <div class="empty small" id="btEmpty">Keine gekoppelten Bluetooth-Kopfhörer.</div>
+    </section>
+
+    <section data-panel="notes">
+      <textarea id="notes" placeholder="Notizen …" spellcheck="true"></textarea>
+      <div class="row-head"><span class="muted" id="notesInfo">Wird automatisch gespeichert.</span></div>
+    </section>
+
+    <section data-panel="display">
+      <ul class="list" id="dispList"></ul>
+      <div class="empty" id="dispEmpty">Suche Bildschirme …</div>
+    </section>
+
+    <section data-panel="claude">
+      <div class="cl-card" id="clCard"><div class="cl-title" id="clTitle">Keine aktive Sitzung</div><div class="cl-detail marq" id="clDetail"></div><div class="sub" id="clMeta"></div></div>
+      <div class="cl-perm" id="clPerm" hidden>
+        <div class="grow"><div class="cl-title" id="clPermTitle"></div><div class="cl-detail marq" id="clPermDetail"></div></div>
+        <button class="icon" id="clDeny" data-icon="close" title="Ablehnen"></button>
+        <button class="icon primary" id="clAllow" data-icon="check" title="Erlauben"></button>
+      </div>
+      <div class="row-head"><span class="muted" id="clSetupText"></span><button class="icon sm" id="clSetup" data-icon="plug" title="Pim in Claude Code einrichten (Hooks in ~/.claude/settings.json)"></button></div>
     </section>
 
     <section data-panel="look">
       <div class="look">
         <label class="row">Accessoire <select id="pAcc"></select></label>
         <div class="row"><span>Farbe</span><div class="swatches" id="pColors"></div></div>
+        <label class="row">Sprechblasen <input type="checkbox" id="pBubbles" title="Pim sagt kurz Bescheid, z. B. wenn ein Download fertig ist"></label>
+        <div class="row"><span>Menüs</span><div class="tabs-toggle" id="pTabs"></div></div>
         <label class="row">Mit Windows-Skalierung <input type="checkbox" id="pFollow" title="Pim wird so groß wie die Windows-Anzeigeskalierung vorgibt"></label>
         <div class="row"><label for="pScale">Größe</label><span class="inline"><input type="range" id="pScale" min="0.25" max="2" step="0.05" title="Größe von Pim, unabhängig von Windows"><span class="val" id="pScaleOut"></span></span></div>
         <label class="row">Spielmodus <input type="checkbox" id="pGame" title="Bei Vollbild-Spielen, -Videos und Präsentationen ausblenden"></label>

@@ -8,6 +8,7 @@ const path = require('path');
 const os = require('os');
 const { pipeline } = require('stream/promises');
 const { Transform } = require('stream');
+const { execFile } = require('child_process');
 
 function counter(onBytes) {
   return new Transform({ transform(chunk, _enc, cb) { onBytes(chunk.length); cb(null, chunk); } });
@@ -34,6 +35,21 @@ function davUrl(base, name) {
   return new URL(encodeURIComponent(name), u).toString();
 }
 
+// Network shares that need a login: connect with the stored credentials first (like "net use" in a terminal).
+// Error 1219 means Windows already has a connection to that server, which is fine for copying.
+// shortcut: the password is passed to net.exe as an argument (visible to local processes for a moment); a credential API would avoid that.
+function shareRoot(p) { const m = /^(\\\\[^\\]+\\[^\\]+)/.exec(p || ''); return m ? m[1] : null; }
+function connectShare(target, pass) {
+  const root = shareRoot(target.path);
+  if (!target.auth || !root || process.platform !== 'win32') return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    execFile('net', ['use', root, pass || '', `/user:${target.user}`, '/persistent:no'], { windowsHide: true, timeout: 20000 }, (err, out, errOut) => {
+      if (!err || /1219|bereits|already/i.test(String(errOut))) return resolve();
+      reject(new Error(/86|1326/.test(String(errOut)) ? 'Benutzername oder Passwort falsch' : `Anmeldung fehlgeschlagen: ${String(errOut || err.message).trim().split('\n')[0]}`));
+    });
+  });
+}
+
 // Uploads one file. onProgress(sentBytes, totalBytes). Resolves to { name, location }.
 async function uploadFile(file, target, pass, onProgress = () => {}) {
   const stat = await fs.promises.stat(file);
@@ -42,6 +58,7 @@ async function uploadFile(file, target, pass, onProgress = () => {}) {
   const tick = n => { sent += n; onProgress(sent, stat.size); };
 
   if (target.type === 'folder') {
+    await connectShare(target, pass);
     const dir = target.path;
     await fs.promises.access(dir, fs.constants.W_OK);
     const name = await freeName(path.basename(file), n => fs.promises.access(path.join(dir, n)).then(() => true, () => false));
@@ -78,6 +95,7 @@ async function uploadFile(file, target, pass, onProgress = () => {}) {
 // Quick reachability check for the settings form.
 async function testTarget(target, pass) {
   if (target.type === 'folder') {
+    await connectShare(target, pass);
     await fs.promises.access(target.path, fs.constants.W_OK);
     return 'Ordner erreichbar und beschreibbar';
   }
@@ -95,8 +113,8 @@ function presets() {
   try { dropbox = JSON.parse(fs.readFileSync(path.join(local, 'Dropbox', 'info.json'), 'utf8')).personal.path || dropbox; } catch { /* default path */ }
   const gdrive = ['G:\\Meine Ablage', 'G:\\My Drive'].find(p => fs.existsSync(p)) || 'G:\\Meine Ablage';
   const list = [
-    { id: 'fritz', name: 'FRITZ!NAS', type: 'folder', path: '\\\\fritz.nas\\FRITZ.NAS', hint: 'SMB-Freigabe der FRITZ!Box. Ggf. Unterordner anhängen.' },
-    { id: 'truenas', name: 'TrueNAS', type: 'folder', path: '\\\\truenas.local\\share', hint: 'SMB-Freigabe. Freigabename anpassen.' },
+    { id: 'fritz', name: 'FRITZ!NAS', type: 'folder', auth: true, path: '\\\\fritz.nas\\FRITZ.NAS', hint: 'SMB-Freigabe der FRITZ!Box. Ggf. Unterordner anhängen.' },
+    { id: 'truenas', name: 'TrueNAS', type: 'folder', auth: true, path: '\\\\truenas.local\\share', hint: 'SMB-Freigabe. Freigabename anpassen.' },
     { id: 'truenas-dav', name: 'TrueNAS (WebDAV)', type: 'webdav', url: 'http://truenas.local:8080/share/', hint: 'WebDAV-Dienst in TrueNAS aktivieren.' },
     { id: 'icloud', name: 'iCloud Drive', type: 'folder', path: path.join(home, 'iCloudDrive'), hint: 'Braucht iCloud für Windows.' },
     { id: 'dropbox', name: 'Dropbox', type: 'folder', path: dropbox, hint: 'Braucht die Dropbox-App.' },
@@ -109,4 +127,4 @@ function presets() {
   return list.map(p => ({ ...p, exists: p.type === 'folder' && p.path && !p.path.startsWith('\\\\') ? fs.existsSync(p.path) : null }));
 }
 
-module.exports = { uploadFile, testTarget, presets, freeName, davUrl };
+module.exports = { uploadFile, testTarget, presets, freeName, davUrl, shareRoot };

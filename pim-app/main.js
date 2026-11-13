@@ -9,6 +9,10 @@ const battery = require('./lib/battery');
 const updater = require('./lib/updater');
 const steam = require('./lib/steam');
 const downloads = require('./lib/downloads');
+const claude = require('./lib/claude');
+const localsend = require('./lib/localsend');
+const { runPs } = require('./lib/ps');
+const QRCode = require('qrcode');
 const upload = require('./lib/upload');
 
 if (!app.requestSingleInstanceLock()) app.quit();
@@ -19,7 +23,7 @@ let win = null, tray = null;
 
 /* ---------- settings (userData/settings.json) ---------- */
 const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
-let settings = { targets: [], defaultTarget: null, pins: [], prefs: { acc: 'auto', color: null, gameMode: true, updateNotify: true, followWindows: true, scale: 1 } };
+let settings = { targets: [], defaultTarget: null, pins: [], notes: '', prefs: { acc: 'auto', color: null, gameMode: true, updateNotify: true, followWindows: true, scale: 1, bubbles: true, tabs: {}, phone: null } };
 function loadSettings() {
   try {
     const saved = JSON.parse(fs.readFileSync(settingsFile(), 'utf8'));
@@ -168,6 +172,25 @@ function setPinned(c, on) {
 }
 
 /* ---------- uploads ---------- */
+async function sendToPhone(files, fp) {
+  const dev = snap.phones.find(d => d.fingerprint === fp) || snap.phones[0];
+  for (const file of files) {
+    const id = crypto.randomUUID(), name = path.basename(file);
+    if (!dev) { send('upload', { id, name, status: 'error', error: 'Kein Handy gefunden. LocalSend am Handy öffnen.' }); continue; }
+    send('upload', { id, name, target: dev.alias, status: 'running', sent: 0, total: 0 });
+    let last = 0;
+    try {
+      await localsend.send(dev, settings.lsFingerprint, [file], (sent, total) => {
+        const now = Date.now();
+        if (now - last > 120 || sent === total) { last = now; send('upload', { id, name, target: dev.alias, status: 'running', sent, total }); }
+      });
+      send('upload', { id, name, target: dev.alias, status: 'done', kind: 'phone' });
+    } catch (e) {
+      send('upload', { id, name, target: dev.alias, status: 'error', error: e.message });
+    }
+  }
+}
+
 async function runUploads(files, targetId) {
   const target = settings.targets.find(t => t.id === (targetId || settings.defaultTarget)) || settings.targets[0];
   for (const file of files) {
@@ -197,6 +220,7 @@ function ipc() {
   ipcMain.on('media', (_e, cmd) => sys.send(cmd));
   ipcMain.on('steam:open', () => shell.openExternal('steam://open/downloads'));
   ipcMain.on('downloads:open', () => shell.openPath(app.getPath('downloads')));
+  ipcMain.on('settings:open', (_e, page) => { if (page === 'bluetooth') shell.openExternal('ms-settings:bluetooth'); });
 
   const clipById = id => clips.find(c => c.id === id);
   ipcMain.on('clip:copy', (_e, id) => {
@@ -237,8 +261,39 @@ function ipc() {
     if (p && typeof p.updateNotify === 'boolean') next.updateNotify = p.updateNotify;
     if (p && typeof p.followWindows === 'boolean') next.followWindows = p.followWindows;
     if (p && Number.isFinite(p.scale)) next.scale = Math.round(Math.min(2, Math.max(0.25, p.scale)) * 100) / 100;
+    if (p && typeof p.bubbles === 'boolean') next.bubbles = p.bubbles;
+    if (p && p.tabs && typeof p.tabs === 'object') next.tabs = Object.fromEntries(Object.entries(p.tabs).filter(([k, v]) => /^[a-z]{1,12}$/.test(k) && typeof v === 'boolean'));
+    if (p && 'phone' in p) next.phone = str(p.phone) && p.phone.length < 200 ? p.phone : null;
     settings.prefs = next; saveSettings(); applyVisibility(); place();
     return next;
+  });
+
+  /* notes, QR codes */
+  ipcMain.handle('notes:get', () => settings.notes || '');
+  ipcMain.on('notes:set', (_e, text) => { if (str(text) && text.length <= 50000) { settings.notes = text; saveSettings(); } });
+  ipcMain.handle('qr', (_e, text) => (str(text) && text.length <= 1500 ? QRCode.toDataURL(text, { margin: 1, width: 240, errorCorrectionLevel: 'M' }) : null));
+
+  /* brightness, Bluetooth audio (PowerShell scripts; Windows only) */
+  ipcMain.handle('display:list', () => runPs('display.ps1', ['list']));
+  ipcMain.handle('display:set', (_e, id, v) => {
+    if (!str(id) || !/^(internal|ddc:\d{1,2})$/.test(id) || !Number.isFinite(v)) throw new Error('Ungültig');
+    return runPs('display.ps1', ['set', id, Math.round(Math.max(0, Math.min(100, v)))]);
+  });
+  ipcMain.handle('bt:list', () => runPs('btaudio.ps1', ['list']));
+  ipcMain.handle('bt:set', (_e, name, on) => {
+    if (!str(name) || name.length > 200) throw new Error('Ungültig');
+    return runPs('btaudio.ps1', [on ? 'connect' : 'disconnect', name]);
+  });
+
+  /* Claude Code */
+  ipcMain.handle('claude:install', () => claude.install(settings.claudeToken));
+  ipcMain.handle('claude:installed', () => claude.installed());
+  ipcMain.on('claude:answer', (_e, id, allow) => { if (Number.isInteger(id)) claudeSrv.answer(id, allow ? 'allow' : 'deny'); });
+
+  /* phone (LocalSend) */
+  ipcMain.on('phone:send', (_e, files, fp) => {
+    if (!Array.isArray(files)) return;
+    sendToPhone(files.filter(f => str(f) && path.isAbsolute(f)), str(fp) ? fp : settings.prefs.phone);
   });
 
   ipcMain.handle('snapshot', () => { const r = { ...snap, justUpdated, update: upd.get(), clips: clips.map(({ img, ...c }) => c), prefs: settings.prefs  }; justUpdated = false; return r; });
@@ -249,7 +304,9 @@ function ipc() {
     if (t.type === 'folder' && !(str(t.path) && t.path.trim())) throw new Error('Pfad fehlt');
     if (t.type === 'webdav') upload.davUrl(t.url, 'x'); // throws on bad URL
     const old = settings.targets.find(x => x.id === t.id);
-    const clean = { id: old ? old.id : crypto.randomUUID(), name: t.name.trim(), type: t.type, path: str(t.path) ? t.path.trim() : '', url: str(t.url) ? t.url.trim() : '', user: str(t.user) ? t.user : '' };
+    const auth = t.type === 'folder' && t.auth === true; // share that needs a login (net use before copying)
+    if (auth && !(str(t.user) && t.user.trim())) throw new Error('Benutzername fehlt');
+    const clean = { id: old ? old.id : crypto.randomUUID(), name: t.name.trim(), type: t.type, path: str(t.path) ? t.path.trim() : '', url: str(t.url) ? t.url.trim() : '', auth, user: (t.type === 'webdav' || auth) && str(t.user) ? t.user.trim() : '' };
     if (str(pass) && pass) {
       if (!safeStorage.isEncryptionAvailable()) throw new Error('Windows-Verschlüsselung nicht verfügbar, Passwort nicht gespeichert');
       clean.passEnc = safeStorage.encryptString(pass).toString('base64');
@@ -284,9 +341,10 @@ function ipc() {
 }
 
 let sys = { send() {}, stop() {} };
+let claudeSrv = { answer() {}, stop() {} };
 let justUpdated = false;
 let upd = { check() {}, install() {}, get: () => ({ status: 'idle', version: app.getVersion() }) };
-const snap = { media: null, steam: [], files: [], sys: null, bt: [] }; // last values, for a renderer that (re)loads late
+const snap = { media: null, steam: [], files: [], sys: null, bt: [], fg: '', phones: [], claude: null }; // last values, for a renderer that (re)loads late
 let bridgeSeen = 0, clipSeq = null;
 app.whenReady().then(() => {
   loadSettings();
@@ -302,12 +360,19 @@ app.whenReady().then(() => {
     snap.media = s.media; send('media', s.media);
     if ('vol' in s && (!snap.sys || snap.sys.vol !== s.vol || snap.sys.muted !== s.muted)) { snap.sys = { vol: s.vol, muted: s.muted }; send('sys', snap.sys); }
     if (!!s.busy !== busy) { busy = !!s.busy; applyVisibility(); }
+    if (typeof s.fg === 'string' && s.fg !== snap.fg) { snap.fg = s.fg; send('fg', s.fg); }
     if (s.clipSeq !== undefined && s.clipSeq !== clipSeq) { clipSeq = s.clipSeq; pollClipboard(); } // Windows tells us when the clipboard changed
   });
   steam.watch(list => { snap.steam = list; send('steam', list); });
   downloads.watch(app.getPath('downloads'), list => { snap.files = list; send('files', list); }, f => send('fileDone', f));
   battery.watch(list => { snap.bt = list; send('bt', list); });
   upd = updater.start(u => send('update', u));
+  // secrets created once: token for Claude hooks, LocalSend fingerprint
+  if (!settings.claudeToken) settings.claudeToken = crypto.randomBytes(16).toString('hex');
+  if (!settings.lsFingerprint) settings.lsFingerprint = crypto.randomBytes(32).toString('hex');
+  saveSettings();
+  claudeSrv = claude.start(settings.claudeToken, ev => { if (ev.type === 'status') snap.claude = ev; send('claude', ev); });
+  localsend.discover(settings.lsFingerprint, list => { snap.phones = list; send('phones', list); });
   // global cursor for Pim's eyes, in window coordinates; only while Pim is visible
   let lastCursor = '';
   setInterval(() => {

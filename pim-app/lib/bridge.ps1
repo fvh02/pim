@@ -3,6 +3,7 @@
 #   vol/muted master volume of the default output device (Core Audio)
 #   busy      a fullscreen game, fullscreen video or presentation is in front (game mode)
 #   clipSeq   clipboard sequence number, so Electron reads the clipboard only when it changed
+#   fg        path of the foreground program (accessories per app)
 # Commands on stdin: toggle | next | prev | seek <±seconds> | vol <0..1> | mute <0|1>
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
@@ -10,6 +11,7 @@ Add-Type -AssemblyName System.Runtime.WindowsRuntime
 
 Add-Type -TypeDefinition @'
 using System;
+using System.Text;
 using System.Runtime.InteropServices;
 
 [Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -46,6 +48,20 @@ public static class PimSys {
   public static bool Busy() { int s; return SHQueryUserNotificationState(out s) == 0 && (s == 2 || s == 3 || s == 4); }
 
   [DllImport("user32.dll")] public static extern uint GetClipboardSequenceNumber();
+
+  // path of the program in the foreground, for accessories that follow the active app
+  [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+  [DllImport("kernel32.dll")] static extern IntPtr OpenProcess(uint access, bool inherit, uint pid);
+  [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr h);
+  [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] static extern bool QueryFullProcessImageName(IntPtr h, int flags, StringBuilder buf, ref int size);
+  public static string Foreground() {
+    uint pid; GetWindowThreadProcessId(GetForegroundWindow(), out pid);
+    IntPtr h = OpenProcess(0x1000, false, pid); // PROCESS_QUERY_LIMITED_INFORMATION also works for most elevated games
+    if (h == IntPtr.Zero) return "";
+    try { var sb = new StringBuilder(1024); int n = sb.Capacity; return QueryFullProcessImageName(h, 0, sb, ref n) ? sb.ToString() : ""; }
+    finally { CloseHandle(h); }
+  }
 }
 '@
 
@@ -137,7 +153,7 @@ while ($true) {
     }
   } catch { $media = @{ active = $false; error = $_.Exception.Message } }
 
-  $out = @{ media = $media; clipSeq = [PimSys]::GetClipboardSequenceNumber(); busy = [PimSys]::Busy() }
+  $out = @{ media = $media; clipSeq = [PimSys]::GetClipboardSequenceNumber(); busy = [PimSys]::Busy(); fg = [PimSys]::Foreground() }
   try { $out.vol = [math]::Round([PimSys]::GetVolume(), 3); $out.muted = [PimSys]::GetMute() } catch {} # no output device
 
   [Console]::Out.WriteLine(($out | ConvertTo-Json -Compress -Depth 4))

@@ -163,3 +163,50 @@ form input, form select, .look select { background: var(--tile); border: 1px sol
 #drop { position: absolute; inset: 0; width: 100%; height: 100%; display: none; pointer-events: none; }
 body.dropping #drop { display: block; }
 body.dropping .bar, body.dropping .body { visibility: hidden; }
+
+/* speech bubble next to Pim (closed pill) */
+.bubble { flex: 1; min-width: 0; position: relative; background: #fff; color: #10131a; text-shadow: none; font-weight: 600; font-size: 12.5px; padding: 5px 10px; border-radius: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: pop .22s cubic-bezier(.3, 1.6, .5, 1); }
+.bubble::before { content: ""; position: absolute; left: -5px; top: 50%; margin-top: -5px; border: 5px solid transparent; border-right-color: #fff; border-left: 0; }
+@keyframes pop { from { transform: scale(.6); opacity: 0; } }
+body.open .bubble { display: none; }
+.bubble:not([hidden]) ~ .status { display: none; }
+
+/* clipboard QR code */
+.qr { display: flex; gap: 12px; align-items: center; background: var(--tile); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+.qr img { width: 150px; height: 150px; border-radius: 8px; background: #fff; flex: none; image-rendering: pixelated; }
+.qr-text { flex: 1; min-width: 0; font-size: 12px; color: var(--muted); word-break: break-all; max-height: 150px; overflow: hidden; }
+
+/* notes */
+#notes { width: 100%; height: 220px; resize: none; background: var(--tile); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; color: var(--fg); font: 13px/1.5 var(--font); user-select: text; text-shadow: none; }
+#notes:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+/* brightness */
+.disp { flex-direction: column; align-items: stretch; gap: 6px; }
+.disp .top { display: flex; justify-content: space-between; gap: 8px; }
+.disp input[type=range] { width: 100%; accent-color: var(--fg); margin: 0; }
+
+form .check-row { flex-direction: row; align-items: center; gap: 8px; color: var(--fg); font-size: 12px; }
+form .check-row input { width: 16px; height: 16px; accent-color: var(--accent); margin: 0; }
+
+/* Bluetooth rows */
+.bt { padding: 5px 6px 5px 10px; }
+
+/* Claude Code */
+.cl-card { background: var(--tile); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+.cl-title { font-weight: 700; font-size: 14px; }
+.cl-detail { color: var(--muted); font-size: 12px; }
+.cl-detail:empty { display: none; }
+.cl-perm { display: flex; align-items: center; gap: 8px; background: rgba(255, 170, 60, .12); border: 1px solid rgba(255, 170, 60, .5); border-radius: 12px; padding: 8px 8px 8px 12px; }
+.cl-perm .icon { width: 36px; height: 36px; background: rgba(255, 255, 255, .1); }
+.cl-perm .icon.primary { background: var(--accent); }
+
+/* menu toggles in the Pim settings */
+.tabs-toggle { display: flex; gap: 3px; }
+.tabs-toggle button { width: 26px; height: 26px; border-radius: 8px; border: 1px solid var(--line); background: none; color: rgba(255, 255, 255, .35); display: grid; place-items: center; padding: 0; }
+.tabs-toggle button[aria-pressed="true"] { color: var(--fg); background: rgba(255, 255, 255, .12); border-color: rgba(255, 255, 255, .25); }
+.tabs-toggle svg { width: 14px; height: 14px; }
+
+/* long menus scroll inside instead of being cut off */
+section[data-panel="storage"].active, section[data-panel="look"].active { max-height: 440px; overflow-y: auto; padding-right: 4px; }
+section[data-panel="storage"].active::-webkit-scrollbar, section[data-panel="look"].active::-webkit-scrollbar { width: 6px; }
+section[data-panel="storage"].active::-webkit-scrollbar-thumb, section[data-panel="look"].active::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .18); border-radius: 3px; }

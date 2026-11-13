@@ -19,11 +19,24 @@ Pim ist eine Island am oberen Bildschirmrand von Windows, wie die Notch beim Mac
 | **Musik** | Kleiner Player für den aktuellen Song: Cover, Titel, Fortschritt, vorheriger Titel, 10 s zurück, Play/Pause, 10 s vor, nächster Titel. Funktioniert mit jedem Player, der die Windows-Mediensteuerung nutzt: Spotify, Apple Music, YouTube/Netflix im Browser, VLC und andere. |
 | **Zwischenablage** | Die letzten 50 kopierten Texte und 10 Bilder. Ein Klick kopiert einen Eintrag erneut, Bilder lassen sich direkt hochladen. Der Verlauf liegt nur im Arbeitsspeicher, damit kopierte Passwörter nie auf der Festplatte landen. Angeheftete Einträge bleiben dauerhaft und werden gespeichert: Texte in `settings.json`, Bilder als PNG. |
 | **Downloads** | Laufende Downloads aus Steam und aus dem Browser (Chrome, Edge, Brave, Opera, Firefox), eine Zeile pro Download: Quelle, Name, Balken, Größe, Tempo. Lange Namen enden mit „…“ und laufen beim Darüberfahren durch. Browser verraten die Endgröße nicht, der Balken läuft dort deshalb ohne Prozent. Ist ein Browser-Download fertig, meldet die Pille das. |
-| **Speicher** | Speicherorte einrichten und den Standard für Uploads wählen. |
-| **Akku** | Laptop-Akku mit Restzeit sowie Bluetooth-Kopfhörer und -Headsets. Unter 20 % (Laptop) oder 15 % (Bluetooth) warnt die Pille. |
-| **Pim** | Accessoire (oder automatisch nach Jahreszeit), Farbe, Größe, Spielmodus, Update-Benachrichtigung, Updates. |
+| **Speicher** | Speicherorte einrichten und den Standard für Uploads wählen. Netzwerkfreigaben mit Anmeldung (z. B. FRITZ!NAS): Haken „Anmeldung nötig“ setzen, Benutzer und Passwort eintragen; Pim meldet sich vor dem Kopieren an. Darüber die gefundenen Handys mit LocalSend, mit Standard-Handy. |
+| **Geräte** | Laptop-Akku mit Restzeit sowie Bluetooth-Kopfhörer und -Headsets. Unter 20 % (Laptop) oder 15 % (Bluetooth) warnt die Pille. Darunter die gekoppelten Bluetooth-Kopfhörer mit „Verbinden“ und „Trennen“ (experimentell, nutzt dieselbe Windows-Funktion wie der Verbinden-Knopf in den Einstellungen). |
+| **Notizen** | Ein Notizfeld, das automatisch gespeichert wird. |
+| **Bildschirm** | Helligkeit pro Bildschirm: Laptop-Display über Windows, externe Monitore über DDC/CI (muss im Monitormenü an sein). |
+| **Claude** | Was Claude Code gerade tut: denkt, arbeitet, sucht, fertig, mit Datei oder Befehl. Fragt Claude nach einer Freigabe, zeigt die Notch „Erlauben“ und „Ablehnen“; ohne Antwort nach 25 s fragt Claude wie gewohnt im Terminal. Einrichtung per Knopf im Menü: Pim trägt Hooks in `~/.claude/settings.json` ein (mit Sicherung `.pim-backup`). |
+| **Pim** | Accessoire (fest, nach Jahreszeit oder nach App), Farbe, Sprechblasen, welche Menüs angezeigt werden, Größe, Spielmodus, Update-Benachrichtigung, Updates. |
 
 **Größe:** Standardmäßig ist „Mit Windows-Skalierung“ angehakt. Pim ist dann so groß, wie es die Anzeigeskalierung von Windows vorgibt, und der Regler ist ausgegraut. Ohne Haken bestimmt der Regler die Größe der ganzen Insel (0,25× bis 2×), unabhängig von der Windows-Skalierung. Beim Abhaken startet der Regler bei der aktuellen Größe.
+
+**Ans Handy schicken:** Ist am Handy die App LocalSend offen (gleiches WLAN), teilt sich die Notch beim Drag & Drop in zwei Zonen: links Karton (Speicher), rechts Handy. Pim prüft das Zertifikat des Handys gegen den angekündigten Fingerabdruck. Windows fragt beim ersten Mal, ob Pim ins Netzwerk darf.
+
+**Accessoires nach App:** Headset bei Spielen, Kopfhörer bei Musik, Brille in Office und Code-Editoren, morgens (6–10 Uhr) eine Kaffeetasse, sonst nach Jahreszeit.
+
+**Sprechblasen:** Pim sagt kurz Bescheid, z. B. „Steam-Spiel ist fertig!“, „Akku bei 10 %“, „Claude braucht deine Freigabe!“ oder „Oh, hallo!“ beim Aufwachen. Abschaltbar im Menü „Pim“.
+
+**QR-Code:** In der Zwischenablage zeigt das QR-Symbol einen Text oder Link als QR-Code fürs Handy.
+
+**Menüs ein- und ausblenden:** Im Menü „Pim“ unter „Menüs“ jedes Menü per Symbol an- oder abschalten.
 
 Alle Knöpfe sind Symbole. Beim Darüberfahren zeigt ein Tooltip, was sie tun.
 
@@ -77,6 +90,9 @@ Die Windows-Builds entstehen auch automatisch in GitHub Actions (Workflow „Pim
 | `lib/bridge.ps1`, `lib/bridge.js` | Windows-Brücke (PowerShell, keine Zusatzpakete): Mediensteuerung (SMTC), Systemlautstärke, Vollbild-Erkennung, Zwischenablage-Zähler |
 | `lib/battery.js` | Bluetooth-Akkustände |
 | `lib/updater.js` | Selbst-Update über GitHub Releases |
+| `lib/claude.js` | Empfang der Claude-Code-Hooks, Freigaben, Einrichtung |
+| `lib/localsend.js` | Handys finden und Dateien senden (LocalSend-Protokoll v2) |
+| `lib/display.ps1`, `lib/btaudio.ps1`, `lib/ps.js` | Helligkeit, Bluetooth-Audio |
 | `lib/steam.js` | Steam-Bibliotheken, Manifeste und Download-Log lesen |
 | `lib/downloads.js` | Browser-Downloads im Download-Ordner erkennen |
 | `lib/upload.js` | Upload in Ordner/SMB und per WebDAV |
@@ -95,5 +111,7 @@ Die Windows-Builds entstehen auch automatisch in GitHub Actions (Workflow „Pim
 - Das Mausrad steuert die Lautstärke des Standard-Ausgabegeräts, nicht einzelner Apps.
 - 10 s vor/zurück funktioniert nur, wenn der Player das Springen über Windows erlaubt. Browser tun das meist, Spotify nicht immer.
 - Ordner lassen sich nicht hochladen, nur Dateien.
+- Bei Freigaben mit Anmeldung übergibt Pim das Passwort kurz als Argument an `net use`; andere Programme auf dem PC könnten es in diesem Moment sehen.
+- Bluetooth „Verbinden/Trennen“, Helligkeit und App-Erkennung sind ungetestet auf echter Hardware.
 - Den Bluetooth-Akku sieht Pim nur bei Geräten, die ihn an Windows melden (die meisten Kopfhörer). Viele Mäuse, Tastaturen und Xbox-Controller melden ihn nicht. Der Wert wird jede Minute aktualisiert.
 - Die Builds sind nicht signiert. Windows SmartScreen fragt beim ersten Start nach („Weitere Informationen“, dann „Trotzdem ausführen“).

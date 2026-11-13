@@ -29,6 +29,13 @@ const ICONS = {
   pad: '<path fill-rule="evenodd" d="M7 7h10a5 5 0 0 1 4.9 6l-.7 3.4a2.5 2.5 0 0 1-4.3 1.1L14.5 15h-5l-2.4 2.5a2.5 2.5 0 0 1-4.3-1.1L2.1 13A5 5 0 0 1 7 7zm0 3v1.5H5.5V13H7v1.5h1.5V13H10v-1.5H8.5V10zm9 .5a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm2 2a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>',
   drive: '<path fill-rule="evenodd" d="M4 4h16v7H4zm0 9h16v7H4zm12-6.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm0 9a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>',
   battery: '<path fill-rule="evenodd" d="M3 7h15a1 1 0 0 1 1 1v2h2v4h-2v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1zm1 2v6h9V9z"/>',
+  note: '<path fill-rule="evenodd" d="M5 3h10l4 4v14H5zm9 1.5V8h3.5zM8 11h8v1.6H8zm0 3.5h8v1.6H8zm0 3.5h5v1.6H8z"/>',
+  sun: '<path d="M12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10zM11 1h2v3h-2zm0 19h2v3h-2zM1 11h3v2H1zm19 0h3v2h-3zM4.2 5.6l1.4-1.4 2.1 2.1-1.4 1.4zm12.1 12.1 1.4-1.4 2.1 2.1-1.4 1.4zM4.2 18.4l2.1-2.1 1.4 1.4-2.1 2.1zM16.3 6.3l2.1-2.1 1.4 1.4-2.1 2.1z"/>',
+  spark: '<path d="M11 2h2l.6 7.2L19 4.6l1.4 1.4-4.6 5.4L23 12v2l-7.2-.6 4.6 5.4L19 20.2l-5.4-4.6L13 23h-2l-.6-7.4L5 20.2 3.6 18.8l4.6-5.4L1 14v-2l7.2-.6L3.6 6 5 4.6l5.4 4.6z"/>',
+  qr: '<path fill-rule="evenodd" d="M3 3h8v8H3zm2 2v4h4V5zm8-2h8v8h-8zm2 2v4h4V5zM3 13h8v8H3zm2 2v4h4v-4zm8-2h3v3h-3zm5 0h3v3h-3zm-5 5h3v3h-3zm5 0h3v3h-3zm-2.5-2.5h3v3h-3z"/>',
+  bt: '<path fill-rule="evenodd" d="M11 2l7 6-5 4 5 4-7 6v-8l-4.3 3.6-1.3-1.5L10.7 12 5.4 7.9l1.3-1.5L11 10zm2 4.3v3.4l2-1.7zm0 8v3.4l2-1.7z"/>',
+  plug: '<path d="M8 2h2v5h4V2h2v5h2v4a6 6 0 0 1-5 5.9V22h-2v-5.1A6 6 0 0 1 6 11V7h2z"/>',
+  phone: '<path fill-rule="evenodd" d="M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 3v13h10V5zm5 14.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>',
   face: '<path fill-rule="evenodd" d="M12 3.5c5.5 0 9.5 2.5 9.5 8.5S17.5 20.5 12 20.5 2.5 18 2.5 12 6.5 3.5 12 3.5zm-3 6a1.3 1.6 0 1 0 0 3.2 1.3 1.6 0 0 0 0-3.2zm6 0a1.3 1.6 0 1 0 0 3.2 1.3 1.6 0 0 0 0-3.2z"/>',
 };
 function setIcon(btn, name) {
@@ -55,14 +62,14 @@ document.addEventListener('mouseover', e => {
   m.addEventListener('mouseleave', () => m.classList.remove('run'), { once: true });
 });
 
-const state = { media: null, steam: [], files: [], clips: [], uploads: new Map(), flash: null, look: [0, 0.15], sys: null, bt: [], pc: null, prefs: { acc: 'auto', color: null, gameMode: true, updateNotify: true, followWindows: true, scale: 1 }, note: null, update: null, hover: false };
+const state = { media: null, steam: [], files: [], clips: [], uploads: new Map(), flash: null, look: [0, 0.15], sys: null, bt: [], pc: null, prefs: { acc: 'auto', color: null, gameMode: true, updateNotify: true, followWindows: true, scale: 1, bubbles: true, tabs: {}, phone: null }, note: null, update: null, hover: false, bubble: null, phones: [], claude: null, perm: null, btPaired: [], fg: '' };
 /* Sleep: 5 min without mouse movement -> yawn -> sleep. Moving the mouse again -> surprised -> wave -> idle.
    Copying something counts as activity too (keyboard users). */
 const SLEEP_AFTER = 5 * 60 * 1000, YAWN_MS = 3500, SURPRISE_MS = 1100, WAVE_MS = 2400;
 const rest = { phase: 'awake', since: 0, lastMove: Date.now() };
 function touch() {
   rest.lastMove = Date.now();
-  if (rest.phase === 'yawn' || rest.phase === 'asleep') { rest.phase = 'waking'; rest.since = Date.now(); }
+  if (rest.phase === 'yawn' || rest.phase === 'asleep') { rest.phase = 'waking'; rest.since = Date.now(); if (typeof say === 'function') say('Oh, hallo! 👋', 3000); }
 }
 function restState(now) {
   if (rest.phase === 'awake' && now - rest.lastMove > SLEEP_AFTER) { rest.phase = 'yawn'; rest.since = now; }
@@ -81,24 +88,40 @@ const MENUS = [
   { id: 'clips', name: 'Zwischenablage', icon: 'clip', w: 640, h: 380 },
   { id: 'steam', name: 'Downloads', icon: 'download', w: 500 },
   { id: 'storage', name: 'Speicher', icon: 'drive', w: 420 },
-  { id: 'battery', name: 'Akku', icon: 'battery', w: 320 },
+  { id: 'battery', name: 'Geräte', icon: 'battery', w: 380 },
+  { id: 'notes', name: 'Notizen', icon: 'note', w: 440 },
+  { id: 'display', name: 'Bildschirm', icon: 'sun', w: 400 },
+  { id: 'claude', name: 'Claude', icon: 'spark', w: 460 },
   { id: 'look', name: 'Pim', icon: 'face', w: 320 },
 ];
 const PILL = { w: 360, h: 64 }, DROP = { w: 360, h: 136 }, HEADER = 72;
 let open = false, menu = 0, closeTimer = null, dropping = false;
 
-MENUS.forEach((m, i) => {
-  const b = iconButton(m.icon, m.name, () => setMenu(i), '');
-  $('menus').append(b);
-});
+// menus can be switched off in the Pim settings; the Pim menu itself always stays
+const visibleMenus = () => MENUS.filter(m => m.id === 'look' || (state.prefs.tabs || {})[m.id] !== false);
+function renderMenus() {
+  $('menus').replaceChildren(...visibleMenus().map(m => {
+    const b = iconButton(m.icon, m.name, () => setMenu(MENUS.indexOf(m)), '');
+    b.setAttribute('aria-current', MENUS[menu] === m);
+    return b;
+  }));
+}
 function setMenu(i) {
   menu = (i + MENUS.length) % MENUS.length;
+  if (!visibleMenus().includes(MENUS[menu])) menu = MENUS.indexOf(visibleMenus()[0]);
   const m = MENUS[menu];
   $('menuName').textContent = m.name;
-  [...$('menus').children].forEach((b, j) => b.setAttribute('aria-current', j === menu));
+  renderMenus();
   document.querySelectorAll('section').forEach(s => s.classList.toggle('active', s.dataset.panel === m.id));
   if (m.id === 'storage') loadStorage();
+  if (m.id === 'battery') loadBt();
+  if (m.id === 'display') loadDisplay();
+  if (m.id === 'claude') loadClaudeSetup();
   fit();
+}
+function stepMenu(dir) {
+  const v = visibleMenus(), pos = Math.max(0, v.indexOf(MENUS[menu]));
+  setMenu(MENUS.indexOf(v[(pos + dir + v.length) % v.length]));
 }
 // The visible island animates to the size of the current menu (CSS). The window itself is the invisible "box":
 // while a menu is open it keeps the largest size seen since opening, so switching to a smaller menu does not
@@ -108,7 +131,7 @@ function menuSize() {
   const m = MENUS[menu], w = Math.max(m.w, PILL.w); // never narrower than the closed pill
   $('body').style.width = `${w}px`; // measure at the target width, not the current one
   const sec = document.querySelector('section.active');
-  return { w, h: m.h || Math.min(440, HEADER + sec.scrollHeight + 18) };
+  return { w, h: m.h || Math.min(530, HEADER + Math.min(440, sec.scrollHeight) + 18) };
 }
 function fit() {
   clearTimeout(shrinkTimer);
@@ -138,7 +161,7 @@ document.body.addEventListener('mouseenter', () => {
 document.body.addEventListener('mouseleave', () => {
   state.hover = false;
   clearTimeout(closeTimer);
-  if (document.activeElement && document.activeElement.matches('input:not([type]), input[type=password], select')) return; // keep the panel while typing
+  if (document.activeElement && document.activeElement.matches('input:not([type]), input[type=password], select, textarea')) return; // keep the panel while typing
   closeTimer = setTimeout(() => setOpen(false), 450);
 });
 window.addEventListener('keydown', e => { if (e.key === 'Escape') { document.activeElement.blur(); setOpen(false); } });
@@ -166,7 +189,7 @@ window.addEventListener('wheel', e => {
   const now = Date.now();
   if (now - wheelLock < 220) return; // one menu per notch, also on touchpads
   wheelLock = now;
-  setMenu(menu + (e.deltaY > 0 ? 1 : -1));
+  stepMenu(e.deltaY > 0 ? 1 : -1);
 }, { passive: false });
 
 /* ---------- volume (wheel on the pill) ---------- */
@@ -190,9 +213,15 @@ function startDrop() {
   clearTimeout(closeTimer); open = false; document.body.classList.remove('open');
   fit();
 }
-function endDrop() { dropping = false; anim = null; document.body.classList.remove('dropping'); fit(); }
+function endDrop() { dropTarget = 'box'; dropping = false; anim = null; document.body.classList.remove('dropping'); fit(); }
 window.addEventListener('dragenter', e => { e.preventDefault(); dragDepth++; startDrop(); });
-window.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+// with a phone found, the notch splits into two drop zones: left = storage (box), right = phone
+let dropTarget = 'box';
+const phoneZone = () => state.phones.length > 0;
+window.addEventListener('dragover', e => {
+  e.preventDefault(); e.dataTransfer.dropEffect = 'copy';
+  if (anim && anim.phase === 'open') dropTarget = phoneZone() && e.clientX > window.innerWidth / 2 ? 'phone' : 'box';
+});
 window.addEventListener('dragleave', () => {
   if (--dragDepth > 0) return;
   dragDepth = 0;
@@ -203,7 +232,8 @@ window.addEventListener('drop', e => {
   e.preventDefault(); dragDepth = 0; clearTimeout(dragLeaveTimer);
   if (!e.dataTransfer.files.length) return endDrop();
   anim = { phase: 'closing', start: performance.now() };
-  pim.upload(Array.from(e.dataTransfer.files), null); // a FileList does not survive the context bridge, an array of Files does
+  const files = Array.from(e.dataTransfer.files); // a FileList does not survive the context bridge, an array of Files does
+  if (dropTarget === 'phone') pim.phoneSend(files, state.prefs.phone); else pim.upload(files, null);
 });
 function drawDropFrame(now) {
   const b = dropCanvas.getBoundingClientRect(), dpr = Math.min(4, devicePixelRatio || 1);
@@ -214,7 +244,7 @@ function drawDropFrame(now) {
   let p = (now - anim.start) / DUR[anim.phase];
   if (p >= 1 && anim.phase === 'closing') { anim = { phase: 'plane', start: now }; p = 0; }
   else if (p >= 1 && anim.phase === 'plane') { endDrop(); return; }
-  drawDrop(dctx, b.width, b.height, anim.phase, Math.min(1, p), now / 1000);
+  drawDrop(dctx, b.width, b.height, anim.phase, Math.min(1, p), now / 1000, { phone: phoneZone(), target: dropTarget });
 }
 
 /* ---------- music ---------- */
@@ -250,6 +280,7 @@ function clipItem(c) {
   else g.append(el('div', 'text', c.text.slice(0, 400)), el('div', 'sub', ago(c.at)));
   li.append(g);
   if (c.type === 'image') li.append(iconButton('upload', 'Auf Standardspeicher hochladen', () => pim.clipUpload(c.id)));
+  else if (c.text.length <= 1500) li.append(iconButton('qr', 'Als QR-Code zeigen (fürs Handy)', () => showQr(c.text)));
   const pin = iconButton('pin', c.pinned ? 'Lösen' : 'Anheften (wird gespeichert)', () => pim.clipPin(c.id));
   if (c.pinned) pin.classList.add('on');
   li.append(pin, iconButton('close', 'Löschen', () => pim.clipDelete(c.id)));
@@ -314,9 +345,13 @@ function downloadsChanged(before) {
   noticeDownloads(); renderSteam();
   if (before !== allDownloads().length && MENUS[menu].id === 'steam') fit();
 }
-pim.onSteam(list => { const n = allDownloads().length; state.steam = list; downloadsChanged(n); });
+pim.onSteam(list => {
+  // a game that leaves the list near 100 % finished downloading
+  for (const d of state.steam) if (!list.some(x => x.appid === d.appid) && d.total && d.done / d.total > 0.95) { flash('finished', 2500); say(`${d.name} ist fertig!`, 4000); }
+  const n = allDownloads().length; state.steam = list; downloadsChanged(n);
+});
 pim.onFiles(list => { const n = allDownloads().length; state.files = list; downloadsChanged(n); });
-pim.onFileDone(f => { flash('finished', 2500); note(`✓ ${f.name} heruntergeladen`, 4000); });
+pim.onFileDone(f => { flash('finished', 2500); say(`${f.name} ist fertig geladen!`, 4000); });
 $('dlFolder').addEventListener('click', () => pim.openDownloads());
 $('steamOpen').addEventListener('click', () => pim.steamOpen());
 
@@ -324,8 +359,8 @@ $('steamOpen').addEventListener('click', () => pim.steamOpen());
 pim.onUpload(u => {
   const prev = state.uploads.get(u.id) || {};
   state.uploads.set(u.id, { ...prev, ...u });
-  if (u.status === 'done') { flash('finished', 2500); note(`✓ ${u.name} → ${u.target}`, 3500); state.uploads.delete(u.id); }
-  if (u.status === 'error') { flash('error', 3000); note(`✕ ${u.name}: ${u.error}`, 6000); state.uploads.delete(u.id); }
+  if (u.status === 'done') { flash('finished', 2500); say(u.kind === 'phone' ? `${u.name} ist auf ${u.target}!` : `${u.name} ist auf ${u.target}.`, 3500); state.uploads.delete(u.id); }
+  if (u.status === 'error') { flash('error', 3000); say(`Ups: ${u.error}`, 6000); state.uploads.delete(u.id); }
 });
 
 /* ---------- battery ---------- */
@@ -354,6 +389,12 @@ function renderBattery() {
   list.hidden = list.children.length === 0;
   if (before !== list.children.length && MENUS[menu].id === 'battery') fit();
 }
+let wasLow = false;
+setInterval(() => { // announce low battery once when it drops below the limit
+  const low = lowBattery();
+  if (low && !wasLow) say(`${low.name} bei ${low.level} %, lade mich bald!`, 5000);
+  wasLow = !!low;
+}, 5000);
 function lowBattery() {
   const b = state.pc;
   if (b && !b.charging && b.level < LOW_PC) return { name: 'Akku', level: Math.round(b.level * 100) };
@@ -368,7 +409,7 @@ if (navigator.getBattery) navigator.getBattery().then(b => {
 pim.onBt(list => { state.bt = list; renderBattery(); });
 
 /* ---------- look: accessory, color, game mode, updates ---------- */
-const ACC_NAMES = { beanie: 'Mütze', 'santa hat': 'Weihnachtsmütze', 'party hat': 'Partyhut', crown: 'Krone', 'witch hat': 'Hexenhut', sunglasses: 'Sonnenbrille', glasses: 'Brille', scarf: 'Schal', pumpkin: 'Kürbis', bow: 'Schleife' };
+const ACC_NAMES = { headphones: 'Kopfhörer', headset: 'Headset', coffee: 'Kaffee', beanie: 'Mütze', 'santa hat': 'Weihnachtsmütze', 'party hat': 'Partyhut', crown: 'Krone', 'witch hat': 'Hexenhut', sunglasses: 'Sonnenbrille', glasses: 'Brille', scarf: 'Schal', pumpkin: 'Kürbis', bow: 'Schleife' };
 const COLORS = [null, '#9cc0ff', '#c1b0ff', '#a6e5cc', '#ffcf8a', '#ff9ba6', '#8fe2ee'];
 function seasonalAcc(d = new Date()) {
   const m = d.getMonth() + 1, day = d.getDate();
@@ -378,11 +419,11 @@ function seasonalAcc(d = new Date()) {
   if (m === 1 || m === 2) return 'beanie';
   return null;
 }
-const currentAcc = () => (state.prefs.acc === 'auto' ? seasonalAcc() : ACCS.includes(state.prefs.acc) ? state.prefs.acc : null);
+const currentAcc = () => (state.prefs.acc === 'app' ? appAcc() || seasonalAcc() : state.prefs.acc === 'auto' ? seasonalAcc() : ACCS.includes(state.prefs.acc) ? state.prefs.acc : null);
 function renderLook() {
   const sel = $('pAcc'); sel.replaceChildren();
   const opt = (v, t) => { const o = el('option', null, t); o.value = v; o.selected = state.prefs.acc === v; sel.append(o); };
-  opt('auto', 'Nach Jahreszeit'); opt('none', 'Keins');
+  opt('app', 'Nach App'); opt('auto', 'Nach Jahreszeit'); opt('none', 'Keins');
   ACCS.forEach(a => opt(a, ACC_NAMES[a] || a));
   const sw = $('pColors'); sw.replaceChildren();
   COLORS.forEach(c => {
@@ -397,15 +438,23 @@ function renderLook() {
   sw.append(pick);
   $('pGame').checked = state.prefs.gameMode;
   $('pNotify').checked = state.prefs.updateNotify !== false;
+  $('pBubbles').checked = state.prefs.bubbles !== false;
+  $('pTabs').replaceChildren(...MENUS.filter(m => m.id !== 'look').map(m => {
+    const on = (state.prefs.tabs || {})[m.id] !== false;
+    const b = iconButton(m.icon, `${m.name} ${on ? 'ausblenden' : 'einblenden'}`, () => savePrefs({ tabs: { ...state.prefs.tabs, [m.id]: !on } }), '');
+    b.setAttribute('aria-pressed', on);
+    return b;
+  }));
   const follow = state.prefs.followWindows !== false;
   $('pFollow').checked = follow;
   $('pScale').disabled = follow; // greyed out and unusable while Windows decides the size
   $('pScale').value = state.prefs.scale;
   $('pScaleOut').textContent = follow ? '' : `${String(state.prefs.scale.toFixed(2)).replace('.', ',')}×`;
 }
-async function savePrefs(p) { state.prefs = await pim.setPrefs(p); renderLook(); }
+async function savePrefs(p) { state.prefs = await pim.setPrefs(p); renderLook(); renderMenus(); renderPhones(); }
 $('pAcc').addEventListener('change', e => savePrefs({ acc: e.target.value }));
 $('pGame').addEventListener('change', e => savePrefs({ gameMode: e.target.checked }));
+$('pBubbles').addEventListener('change', e => savePrefs({ bubbles: e.target.checked }));
 $('pNotify').addEventListener('change', e => savePrefs({ updateNotify: e.target.checked }));
 // Turning Windows scaling off starts the slider at the current Windows factor, so nothing jumps.
 $('pFollow').addEventListener('change', e => savePrefs(e.target.checked ? { followWindows: true } : { followWindows: false, scale: Math.min(2, Math.max(0.25, Math.round(devicePixelRatio * 20) / 20)) }));
@@ -434,6 +483,8 @@ function renderUpdate() {
 }
 $('uBtn').addEventListener('click', () => (['ready', 'portable'].includes(state.update.status) ? pim.updateInstall() : pim.updateCheck()));
 pim.onUpdate(u => {
+  const was = state.update && state.update.status;
+  if (u.status === 'ready' && was !== 'ready' && state.prefs.updateNotify !== false) say(`Update ${u.next} ist bereit!`);
   state.update = u; renderUpdate();
 });
 
@@ -454,16 +505,22 @@ function renderTargets() {
   list.hidden = !targets.targets.length;
   if (MENUS[menu].id === 'storage') fit();
 }
-function syncType() { document.querySelectorAll('[data-for]').forEach(l => { l.hidden = l.dataset.for !== $('fType').value; }); if (MENUS[menu].id === 'storage') fit(); }
+function syncType() {
+  const type = $('fType').value, cred = type === 'webdav' || $('fAuth').checked; // user and password: WebDAV, or a share that needs a login
+  document.querySelectorAll('[data-for]').forEach(l => { l.hidden = l.dataset.for === 'cred' ? !cred : l.dataset.for !== type; });
+  if (MENUS[menu].id === 'storage') fit();
+}
+$('fAuth').addEventListener('change', syncType);
 function fillForm(t = {}) {
   editing = t.id || null;
   $('fName').value = t.name || ''; $('fType').value = t.type || 'folder';
   $('fPath').value = t.path || ''; $('fUrl').value = t.url || ''; $('fUser').value = t.user || ''; $('fPass').value = '';
+  $('fAuth').checked = !!t.auth;
   $('fPass').placeholder = t.hasPass ? 'unverändert' : '';
   $('fHint').textContent = t.hint || ''; $('fMsg').textContent = ''; $('fMsg').className = 'msg';
   syncType();
 }
-const formTarget = () => ({ id: editing, name: $('fName').value, type: $('fType').value, path: $('fPath').value, url: $('fUrl').value, user: $('fUser').value });
+const formTarget = () => ({ id: editing, name: $('fName').value, type: $('fType').value, path: $('fPath').value, url: $('fUrl').value, auth: $('fType').value === 'folder' && $('fAuth').checked, user: $('fUser').value });
 const msg = (text, ok) => { $('fMsg').textContent = text; $('fMsg').className = 'msg ' + (ok ? 'ok' : 'err'); };
 async function loadStorage() {
   [targets, presets] = await Promise.all([pim.targets(), pim.presets()]);
@@ -488,6 +545,154 @@ $('stForm').addEventListener('submit', async e => {
   } catch (err) { msg(errText(err), false); }
 });
 
+/* ---------- speech bubbles ---------- */
+// Short messages next to Pim in the closed pill; switched off, they fall back to the plain status line.
+function say(text, ms = 3500) {
+  if (state.prefs.bubbles === false) return note(text, ms);
+  state.bubble = { text, until: Date.now() + ms };
+}
+
+/* ---------- clipboard QR code ---------- */
+async function showQr(text) {
+  const url = await pim.qr(text);
+  if (!url) return;
+  $('qrImg').src = url; $('qrText').textContent = text; $('qrBox').hidden = false;
+}
+$('qrClose').addEventListener('click', () => { $('qrBox').hidden = true; });
+
+/* ---------- notes (saved in settings.json, debounced) ---------- */
+let notesTimer = null;
+$('notes').addEventListener('input', () => {
+  clearTimeout(notesTimer);
+  $('notesInfo').textContent = 'Speichere …';
+  notesTimer = setTimeout(() => { pim.notesSet($('notes').value); $('notesInfo').textContent = 'Gespeichert.'; }, 600);
+});
+pim.notesGet().then(t => { $('notes').value = t; });
+
+/* ---------- display brightness ---------- */
+async function loadDisplay() {
+  $('dispEmpty').hidden = false; $('dispEmpty').textContent = 'Suche Bildschirme …';
+  let list = [];
+  try { list = await pim.displayList(); } catch (e) { $('dispEmpty').textContent = errText(e); return fit(); }
+  const ul = $('dispList'); ul.replaceChildren();
+  for (const d of list || []) {
+    const li = el('li', 'item disp');
+    const top = el('div', 'top'), val = el('span', 'pct', `${d.value} %`);
+    top.append(el('span', 'name', d.name), val);
+    const r = el('input'); r.type = 'range'; r.min = 0; r.max = 100; r.value = d.value; r.title = `Helligkeit ${d.name}`;
+    r.addEventListener('input', () => { val.textContent = `${r.value} %`; });
+    r.addEventListener('change', async () => { try { await pim.displaySet(d.id, Number(r.value)); } catch (e) { val.textContent = errText(e); } });
+    li.append(top, r); ul.append(li);
+  }
+  $('dispEmpty').hidden = (list || []).length > 0;
+  $('dispEmpty').textContent = 'Kein steuerbarer Bildschirm. Externe Monitore brauchen DDC/CI (im Monitormenü einschalten).';
+  ul.hidden = !(list || []).length;
+  fit();
+}
+
+/* ---------- Bluetooth audio: connect / disconnect paired headphones ---------- */
+async function loadBt() {
+  try { state.btPaired = (await pim.btList()) || []; } catch { state.btPaired = []; }
+  renderBt();
+}
+function renderBt() {
+  const ul = $('btList'); ul.replaceChildren();
+  for (const d of state.btPaired) {
+    const bat = state.bt.find(b => b.name === d.name || b.name.startsWith(d.name) || d.name.startsWith(b.name));
+    const li = el('li', 'item bt');
+    const g = el('div', 'grow'); g.append(el('div', 'name', d.name), el('div', 'sub', bat ? `verbunden · ${bat.level} %` : 'gekoppelt'));
+    const act = async (on, label) => {
+      g.lastChild.textContent = on ? 'verbinde …' : 'trenne …';
+      try { await pim.btSet(d.name, on); g.lastChild.textContent = label; } catch (e) { g.lastChild.textContent = errText(e); }
+    };
+    li.append(g, iconButton('bt', 'Verbinden', () => act(true, 'verbunden')), iconButton('close', 'Trennen', () => act(false, 'getrennt')));
+    ul.append(li);
+  }
+  $('btEmpty').hidden = state.btPaired.length > 0;
+  ul.hidden = !state.btPaired.length;
+  if (MENUS[menu].id === 'battery') fit();
+}
+$('btRefresh').addEventListener('click', loadBt);
+$('btSettings').addEventListener('click', () => pim.openSettings('bluetooth'));
+
+/* ---------- Claude Code status ---------- */
+const CL_NAMES = { greeting: 'Sitzung gestartet', thinking: 'Denkt nach', working: 'Arbeitet', searching: 'Sucht', approval: 'Wartet auf Freigabe', question: 'Wartet auf dich', finished: 'Fertig', idle: 'Bereit' };
+// Pim's state from Claude: busy states only while fresh, so a crashed session does not keep Pim busy forever
+function claudeState() {
+  if (state.perm) return 'approval';
+  const c = state.claude;
+  if (!c || c.ended) return null;
+  const age = Date.now() - c.at;
+  if (['thinking', 'working', 'searching'].includes(c.state) && age < 120000) return c.state;
+  if (c.state === 'question' && age < 600000) return 'question';
+  return null;
+}
+function renderClaude() {
+  const c = state.claude, base = s => s ? s.split(/[\\/]/).filter(Boolean).pop() : '';
+  $('clTitle').textContent = c ? (CL_NAMES[c.state] || c.text) : 'Keine aktive Sitzung';
+  $('clDetail').textContent = c ? [c.text !== CL_NAMES[c.state] ? c.text : '', c.detail].filter(Boolean).join(' · ') : '';
+  $('clMeta').textContent = c ? `${base(c.cwd) || 'Projekt'} · ${ago(c.at)}` : 'Starte Claude Code, Pim zeigt dann, was es tut.';
+  $('clPerm').hidden = !state.perm;
+  if (state.perm) { $('clPermTitle').textContent = `Freigabe: ${state.perm.tool || 'Werkzeug'}`; $('clPermDetail').textContent = state.perm.detail || ''; }
+  if (MENUS[menu].id === 'claude') fit();
+}
+pim.onClaude(ev => {
+  if (ev.type === 'status') {
+    const was = state.claude && state.claude.state;
+    state.claude = ev; touch();
+    if (ev.state === 'finished' && was !== 'finished') { flash('finished', 4000); say('Claude ist fertig!'); }
+    if (ev.state === 'greeting') flash('greeting', 2500);
+    if (ev.state === 'question') say('Claude wartet auf dich.');
+  } else if (ev.type === 'permission') {
+    state.perm = { id: ev.id, tool: ev.tool, detail: ev.detail };
+    state.claude = { ...ev, type: 'status' }; touch();
+    say('Claude braucht deine Freigabe!', 6000);
+  } else if (ev.type === 'permission-closed' && state.perm && state.perm.id === ev.id) state.perm = null;
+  else if (ev.type === 'error') note(`Claude-Anbindung: ${ev.message}`, 6000);
+  renderClaude();
+});
+$('clAllow').addEventListener('click', () => { if (state.perm) { pim.claudeAnswer(state.perm.id, true); state.perm = null; renderClaude(); } });
+$('clDeny').addEventListener('click', () => { if (state.perm) { pim.claudeAnswer(state.perm.id, false); state.perm = null; renderClaude(); } });
+async function loadClaudeSetup() {
+  const ok = await pim.claudeInstalled();
+  $('clSetupText').textContent = ok ? 'In Claude Code eingerichtet.' : 'Noch nicht eingerichtet. Rechts klicken.';
+  renderClaude();
+}
+$('clSetup').addEventListener('click', async () => {
+  if (!confirm('Pim trägt Hooks in ~/.claude/settings.json ein (vorher wird eine Sicherung .pim-backup angelegt). Fortfahren?')) return;
+  try { await pim.claudeInstall(); $('clSetupText').textContent = 'Eingerichtet. Gilt ab der nächsten Claude-Sitzung.'; } catch (e) { $('clSetupText').textContent = errText(e); }
+});
+
+/* ---------- phones (LocalSend) ---------- */
+function renderPhones() {
+  const ul = $('phList'); ul.replaceChildren();
+  for (const d of state.phones) {
+    const li = el('li', 'item');
+    const r = el('input', 'radio'); r.type = 'radio'; r.name = 'phone'; r.title = 'Standard-Handy';
+    r.checked = state.prefs.phone ? state.prefs.phone === d.fingerprint : d === state.phones[0];
+    r.addEventListener('click', () => savePrefs({ phone: d.fingerprint }));
+    const g = el('div', 'grow'); g.append(el('div', 'name', d.alias), el('div', 'sub', [d.model, d.ip].filter(Boolean).join(' · ')));
+    li.append(r, g); ul.append(li);
+  }
+  $('phEmpty').hidden = state.phones.length > 0;
+  ul.hidden = !state.phones.length;
+  if (MENUS[menu].id === 'storage') fit();
+}
+pim.onPhones(list => { state.phones = list; renderPhones(); });
+
+/* ---------- accessories that follow the active app ---------- */
+const GAME = /\\steamapps\\common\\|\\epic games\\|\\riot games\\|\\battle\.net\\|\\ubisoft|\\ea games\\|\\gog galaxy\\games\\|\\xboxgames\\/i;
+const WORK = /\\(winword|excel|powerpnt|onenote|outlook|code|devenv|idea64|pycharm64|webstorm64|notepad\+\+|sublime_text|obsidian|acrobat|acrord32)\.exe$/i;
+function appAcc() {
+  if (GAME.test(state.fg)) return 'headset';
+  if (state.media && state.media.playing) return 'headphones';
+  if (WORK.test(state.fg)) return 'glasses';
+  const h = new Date().getHours();
+  if (h >= 6 && h < 10) return 'coffee';
+  return null;
+}
+pim.onFg(p => { state.fg = p; });
+
 /* ---------- mascot and pill status ---------- */
 function flash(name, ms) { state.flash = { name, until: Date.now() + ms }; }
 function note(text, ms = 1200) { state.note = { text, until: Date.now() + ms }; }
@@ -497,7 +702,10 @@ function mascotState() {
   const now = Date.now();
   if ([...state.uploads.values()].some(u => u.status === 'running')) return 'upload';
   if (state.flash && state.flash.until > now) return state.flash.name;
+  const cs = claudeState();
+  if (cs === 'approval') return cs; // Claude waits for you: show it above everything else
   if (updatePending()) return 'finished'; // stays until the update is installed
+  if (cs) return cs;
   if (lowBattery()) return 'rate limit';
   if (state.media && state.media.playing) return 'dancing';
   return restState(now); // idle, or the yawn / sleep / wake-up sequence
@@ -506,6 +714,7 @@ function statusLine() {
   const up = [...state.uploads.values()].find(u => u.status === 'running');
   if (up) return `↑ ${up.name} ${up.total ? Math.floor((up.sent / up.total) * 100) + ' %' : ''}`;
   if (state.note && state.note.until > Date.now()) return state.note.text;
+  if (claudeState()) return `Claude: ${state.claude.text}${state.claude.detail ? ' · ' + state.claude.detail : ''}`;
   const low = lowBattery();
   if (low) return `🪫 ${low.name} ${low.level} %`;
   const dl = allDownloads()[0];
@@ -547,6 +756,8 @@ function loop(now) {
 
   if (now - lastUi > 250) { // text and progress bars do not need 60 fps
     lastUi = now;
+    const bub = state.bubble && state.bubble.until > Date.now() && !open ? state.bubble.text : '';
+    $('bubble').hidden = !bub; if (bub && $('bubble').textContent !== bub) $('bubble').textContent = bub;
     $('statusText').textContent = statusLine();
     $('menuName').textContent = state.note && state.note.until > Date.now() && state.note.text.startsWith('Lautstärke') ? state.note.text : MENUS[menu].name;
     $('eq').hidden = !(state.media && state.media.playing);
@@ -562,8 +773,8 @@ fillForm();
 pim.targets().then(t => { targets = t; renderTargets(); });
 pim.snapshot().then(s => {
   if (s.justUpdated) flash('dancing', 10000); // first start after an update installed
-  Object.assign(state, { update: s.update, media: s.media, steam: s.steam || [], files: s.files || [], clips: s.clips || [], sys: s.sys, bt: s.bt || [], prefs: s.prefs || state.prefs });
-  renderMedia(); renderSteam(); renderClips(); renderBattery(); renderLook(); renderUpdate();
+  Object.assign(state, { phones: s.phones || [], claude: s.claude, fg: s.fg || '', update: s.update, media: s.media, steam: s.steam || [], files: s.files || [], clips: s.clips || [], sys: s.sys, bt: s.bt || [], prefs: s.prefs || state.prefs });
+  renderMedia(); renderSteam(); renderClips(); renderBattery(); renderLook(); renderUpdate(); renderMenus(); renderPhones(); renderClaude(); setMenu(menu);
 });
 setInterval(renderClips, 60000); // refresh "vor x min"
 requestAnimationFrame(loop);

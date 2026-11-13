@@ -47,22 +47,45 @@ function drawPlane(ctx, x, y, angle, s) {
   ctx.restore();
 }
 
-function drawDrop(ctx, w, h, phase, p, t) {
-  const cx = w / 2, cy = h * 0.66, s = Math.min(1.2, h / 90);
+function drawPhone(ctx, cx, cy, s, glow, alpha) {
+  const pw = 26 * s, ph = 44 * s, x = cx - pw / 2, y = cy - ph / 2 - 6 * s;
+  ctx.save(); ctx.globalAlpha = alpha;
+  if (glow > 0) { ctx.shadowColor = `rgba(111,157,255,${0.9 * glow})`; ctx.shadowBlur = 18 * glow; }
+  ctx.fillStyle = '#f4f6fa'; ctx.beginPath(); ctx.roundRect(x, y, pw, ph, 6 * s); ctx.fill();
+  ctx.shadowBlur = 0;
+  const g = ctx.createLinearGradient(0, y, 0, y + ph); g.addColorStop(0, '#6f9dff'); g.addColorStop(1, '#a98bff');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect(x + 2.5 * s, y + 5 * s, pw - 5 * s, ph - 10 * s, 3 * s); ctx.fill();
+  ctx.fillStyle = '#c9cfda'; ctx.fillRect(cx - 4 * s, y + 2 * s, 8 * s, 1.4 * s);
+  ctx.restore();
+}
+
+function drawArrow(ctx, x, y, s, t) {
+  const bob = Math.abs(Math.sin(t * 4)) * 5, ay = y + bob;
+  ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(x, ay - 15 * s); ctx.lineTo(x, ay); ctx.moveTo(x - 5, ay - 5); ctx.lineTo(x, ay); ctx.lineTo(x + 5, ay - 5); ctx.stroke();
+  ctx.restore();
+}
+
+// opts.phone: a second drop zone (phone) on the right; opts.target: 'box' or 'phone' (hovered / chosen)
+function drawDrop(ctx, w, h, phase, p, t, opts = {}) {
+  const cy = h * 0.66, s = Math.min(1.2, h / 90);
+  const two = !!opts.phone, onPhone = two && opts.target === 'phone';
+  const bx = two ? w * 0.32 : w / 2, px = w * 0.68;
+  const tx = onPhone ? px : bx; // where the plane starts
   if (phase === 'open') {
-    drawBox(ctx, cx, cy + Math.sin(t * 3) * 1.2, s, 0, 1);
-    // arrow bouncing into the open box, drawn on top so the back flap does not hide it
-    const bob = Math.abs(Math.sin(t * 4)) * 5, ax = cx + 4, ay = cy - 36 * s + bob;
-    ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.beginPath(); ctx.moveTo(ax, ay - 15 * s); ctx.lineTo(ax, ay); ctx.moveTo(ax - 5, ay - 5); ctx.lineTo(ax, ay); ctx.lineTo(ax + 5, ay - 5); ctx.stroke();
-    ctx.restore();
+    const bs = two && !onPhone ? 1.08 : 1, ps = onPhone ? 1.08 : 1;
+    drawBox(ctx, bx, cy + Math.sin(t * 3) * 1.2, s * bs, 0, two && onPhone ? 0.45 : 1);
+    if (two) drawPhone(ctx, px, cy, s * ps, onPhone ? 0.6 + 0.4 * Math.sin(t * 5) : 0, onPhone ? 1 : 0.45);
+    drawArrow(ctx, tx + (onPhone ? 0 : 4), cy - (onPhone ? 44 : 36) * s, s, t);
   } else if (phase === 'closing') {
-    drawBox(ctx, cx, cy, s * (1 - 0.06 * Math.sin(p * Math.PI)), Math.min(1, easeOutBack(p)), 1);
+    if (onPhone) { drawBox(ctx, bx, cy, s, 0, 0.3); drawPhone(ctx, px, cy, s * (1 + 0.08 * Math.sin(p * Math.PI)), 1, 1); }
+    else { drawBox(ctx, bx, cy, s * (1 - 0.06 * Math.sin(p * Math.PI)), Math.min(1, easeOutBack(p)), 1); if (two) drawPhone(ctx, px, cy, s, 0, 0.3); }
   } else if (phase === 'plane') {
-    drawBox(ctx, cx, cy + easeIn(p) * 60 * s, s, 1, 1 - easeIn(p)); // closed box sinks away while the plane leaves
-    // quadratic curve from the box up and out to the right edge
+    if (onPhone) drawPhone(ctx, px, cy + easeIn(p) * 60 * s, s, 1 - p, 1 - easeIn(p));
+    else drawBox(ctx, bx, cy + easeIn(p) * 60 * s, s, 1, 1 - easeIn(p)); // closed box sinks away while the plane leaves
+    // quadratic curve from the target up and out to the right edge
     const e = easeIn(Math.min(1, p * 1.05)) * 0.85 + p * 0.15;
-    const sx = cx, sy = cy - 22 * s, mx = cx + w * 0.15, my = -h * 0.1, ex = w + 40, ey = h * 0.15;
+    const sx = tx, sy = cy - 22 * s, mx = tx + w * 0.15, my = -h * 0.1, ex = w + 40, ey = h * 0.15;
     const x = (1 - e) * (1 - e) * sx + 2 * (1 - e) * e * mx + e * e * ex;
     const y = (1 - e) * (1 - e) * sy + 2 * (1 - e) * e * my + e * e * ey;
     const dx = 2 * (1 - e) * (mx - sx) + 2 * e * (ex - mx), dy = 2 * (1 - e) * (my - sy) + 2 * e * (ey - my);
