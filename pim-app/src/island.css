@@ -21,7 +21,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .muted { color: var(--muted); }
 
 /* island: flush with the top edge, rounded only at the bottom like a notch */
-.island { position: absolute; inset: 0; background: var(--island); border-radius: 0 0 18px 18px; display: flex; flex-direction: column; overflow: hidden; }
+.island { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 320px; height: 46px; background: var(--island); border-radius: 0 0 18px 18px; display: flex; flex-direction: column; overflow: hidden; transition: width .2s cubic-bezier(.3, 1.2, .5, 1), height .2s cubic-bezier(.3, 1.2, .5, 1), border-radius .2s; }
 body.open .island { border-radius: 0 0 22px 22px; }
 
 .bar { display: flex; align-items: center; gap: 8px; height: 46px; padding: 0 14px 0 4px; flex: none; }

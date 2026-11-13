@@ -6,12 +6,11 @@ Pim ist eine Island am oberen Bildschirmrand von Windows, wie die Notch beim Mac
 
 | Aktion | Wirkung |
 |---|---|
-| Maus über die Pille | Nichts klappt auf. Die Pille zeigt den Status, z. B. Song, Steam-Download, Upload. |
-| **Strg halten** und Maus über die Pille | Das Menü klappt auf. |
-| **Strg + Mausrad** | Blättert durch die Menüs. Das Fenster passt seine Größe an das jeweilige Menü an. |
-| Mausrad über der zugeklappten Pille | Systemlautstärke |
+| Maus über die Pille | Das Menü klappt auf. |
+| Mausrad im Menü | Blättert durch die Menüs. Die Insel passt ihre Größe an das jeweilige Menü an. Über einer Liste, die scrollen kann (z. B. Zwischenablage), scrollt das Mausrad die Liste. |
+| Mausrad über Pim | Systemlautstärke |
 | Datei auf die Pille ziehen | Ein offener weißer Karton erscheint. Beim Loslassen schließt er sich, ein Papierflieger fliegt aus der Notch, und die Datei wird auf den Standardspeicher hochgeladen. Fortschritt und Ergebnis zeigt die Pille. |
-| `Esc` oder Maus weg | Klappt zu. |
+| `Esc` oder Maus weg | Klappt zu. Solange das Menü offen ist, zählt der Bereich des bisher größten Menüs als „drin“. Wechselst du z. B. von der Zwischenablage in ein kleineres Menü, bleibt es offen, obwohl die Maus jetzt neben der Insel steht. |
 
 ## Menüs
 

@@ -100,14 +100,27 @@ function setMenu(i) {
   if (m.id === 'storage') loadStorage();
   fit();
 }
-function fit() {
-  if (dropping) return pim.size(DROP);
-  if (!open) return pim.size(PILL);
+// The visible island animates to the size of the current menu (CSS). The window itself is the invisible "box":
+// while a menu is open it keeps the largest size seen since opening, so switching to a smaller menu does not
+// leave the cursor outside the window and close everything. It shrinks back to the pill once closed.
+let box = { ...PILL }, shrinkTimer = null;
+function menuSize() {
   const m = MENUS[menu];
-  $('body').style.width = `${m.w}px`; // measure at the target width, not the current window width
+  $('body').style.width = `${m.w}px`; // measure at the target width, not the current one
   const sec = document.querySelector('section.active');
-  const h = m.h || Math.min(440, HEADER + sec.scrollHeight + 18);
-  pim.size({ w: m.w, h });
+  return { w: m.w, h: m.h || Math.min(440, HEADER + sec.scrollHeight + 18) };
+}
+function fit() {
+  clearTimeout(shrinkTimer);
+  const s = dropping ? DROP : open ? menuSize() : PILL;
+  $('island').style.width = `${s.w}px`; $('island').style.height = `${s.h}px`;
+  if (open || dropping) {
+    box = { w: Math.max(box.w, s.w), h: Math.max(box.h, s.h) };
+    pim.size(box);
+  } else {
+    box = { ...PILL };
+    shrinkTimer = setTimeout(() => pim.size(PILL), 240); // after the island has animated back to the pill
+  }
 }
 function setOpen(on) {
   clearTimeout(closeTimer);
@@ -116,10 +129,12 @@ function setOpen(on) {
   document.body.classList.toggle('open', on);
   fit();
 }
-// Ctrl + hover opens; plain hover leaves the pill alone. Mouse events carry the Ctrl state even when Pim has no focus.
-const ctrlHover = e => { if (e.ctrlKey && !open && !dropping) setOpen(true); };
-document.addEventListener('mousemove', ctrlHover);
-document.body.addEventListener('mouseenter', e => { state.hover = true; clearTimeout(closeTimer); ctrlHover(e); });
+// Hovering the pill opens it (short delay, so passing the top edge does not pop it open).
+document.body.addEventListener('mouseenter', () => {
+  state.hover = true;
+  clearTimeout(closeTimer);
+  if (!open && !dropping) closeTimer = setTimeout(() => setOpen(true), 150);
+});
 document.body.addEventListener('mouseleave', () => {
   state.hover = false;
   clearTimeout(closeTimer);
@@ -134,21 +149,24 @@ pim.onCursor(p => {
   state.look = [Math.max(-1, Math.min(1, (p.x - r.left - r.width / 2) / 420)), Math.max(-1, Math.min(1, (p.y - r.top - r.height / 2) / 260))];
 });
 
-// Wheel: Ctrl + wheel switches menus; plain wheel on the closed pill changes the volume; inside a menu it scrolls.
+// Wheel: over Pim it sets the volume; over a list that can scroll it scrolls; anywhere else it switches menus.
 let wheelLock = 0;
 window.addEventListener('wheel', e => {
-  if (e.ctrlKey) {
-    e.preventDefault(); // also stops Chromium's Ctrl+wheel zoom
-    if (!open) { setOpen(true); return; }
-    const now = Date.now();
-    if (now - wheelLock < 180) return; // one menu per notch, also on touchpads
-    wheelLock = now;
-    setMenu(menu + (e.deltaY > 0 ? 1 : -1));
+  if (e.ctrlKey) e.preventDefault(); // no Chromium zoom
+  if (e.target.closest('#pim')) {
+    if (!state.sys) return;
+    e.preventDefault();
+    setVolume(state.sys.vol + (e.deltaY < 0 ? 0.02 : -0.02));
     return;
   }
-  if (open || !state.sys) return;
+  if (!open) return;
+  const list = e.target.closest('.list');
+  if (list && list.scrollHeight > list.clientHeight + 1) return;
   e.preventDefault();
-  setVolume(state.sys.vol + (e.deltaY < 0 ? 0.02 : -0.02));
+  const now = Date.now();
+  if (now - wheelLock < 220) return; // one menu per notch, also on touchpads
+  wheelLock = now;
+  setMenu(menu + (e.deltaY > 0 ? 1 : -1));
 }, { passive: false });
 
 /* ---------- volume (wheel on the pill) ---------- */
@@ -462,7 +480,6 @@ function statusLine() {
   const m = state.media;
   if (m && m.active && m.title) return `${m.title}${m.artist ? ' – ' + m.artist : ''}`;
   if (updatePending()) return state.update.status === 'downloading' ? `Lade Update ${state.update.next} …` : `Update ${state.update.next} bereit`;
-  if (state.hover) return 'Strg halten zum Öffnen';
   return '';
 }
 
@@ -497,6 +514,7 @@ function loop(now) {
   if (now - lastUi > 250) { // text and progress bars do not need 60 fps
     lastUi = now;
     $('statusText').textContent = statusLine();
+    $('menuName').textContent = state.note && state.note.until > Date.now() && state.note.text.startsWith('Lautstärke') ? state.note.text : MENUS[menu].name;
     $('eq').hidden = !(state.media && state.media.playing);
     const m = state.media;
     if (m && m.duration) $('mFill').style.width = (mediaPos() / m.duration) * 100 + '%';

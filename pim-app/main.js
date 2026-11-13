@@ -42,22 +42,17 @@ function ranBefore() {
 }
 
 /* ---------- window ---------- */
-// The renderer asks for the size of the current menu; the window grows and shrinks toward it in a few frames,
-// always centered on the top edge of the primary screen.
-let cur = { ...PILL }, target = { ...PILL }, sizeTimer = null;
+// The renderer sets the window size (the island inside animates with CSS); always centered on the top edge.
+let cur = { ...PILL };
 function place() {
   if (!win || win.isDestroyed()) return;
   const d = screen.getPrimaryDisplay().bounds;
   win.setBounds({ x: Math.round(d.x + (d.width - cur.w) / 2), y: d.y, width: cur.w, height: cur.h });
 }
 function resizeTo(w, h) {
-  target = { w, h };
-  if (!sizeTimer) sizeTimer = setInterval(() => {
-    const step = (a, z) => (Math.abs(z - a) <= 2 ? z : Math.round(a + (z - a) * 0.38));
-    cur = { w: step(cur.w, target.w), h: step(cur.h, target.h) };
-    place();
-    if (cur.w === target.w && cur.h === target.h) { clearInterval(sizeTimer); sizeTimer = null; }
-  }, 16);
+  if (cur.w === w && cur.h === h) return;
+  cur = { w, h };
+  place();
 }
 
 function createWindow() {
