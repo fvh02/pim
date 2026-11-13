@@ -84,7 +84,7 @@ const MENUS = [
   { id: 'battery', name: 'Akku', icon: 'battery', w: 320 },
   { id: 'look', name: 'Pim', icon: 'face', w: 320 },
 ];
-const PILL = { w: 320, h: 46 }, DROP = { w: 320, h: 118 }, HEADER = 54;
+const PILL = { w: 340, h: 56 }, DROP = { w: 340, h: 126 }, HEADER = 64;
 let open = false, menu = 0, closeTimer = null, dropping = false;
 
 MENUS.forEach((m, i) => {
@@ -508,8 +508,9 @@ function loop(now) {
   r.look[0] = lerp(r.look[0], look[0], 0.12); r.look[1] = lerp(r.look[1], look[1], 0.12);
   ctx.setTransform(r.dpr, 0, 0, r.dpr, 0, 0);
   ctx.clearRect(0, 0, r.w, r.h);
-  const R = Math.min(r.w / 2.7, r.h / (acc ? 3.1 : 2.3)); // hats need headroom; R = 0 before the first layout
-  if (R > 0) drawPim(ctx, { cx: r.w / 2, cy: r.h * (acc ? 0.6 : 0.5), R, t, st: { ...st, fx: null }, acc, n: 2.7, morph: r.morph, look: r.look, tint: r.tint, seed: 0.8, glow: 0 });
+  // fill the canvas: body is 2.28 R wide and 1.76 R tall; hats need headroom; R = 0 before the first layout
+  const R = Math.min(r.w / 2.5, r.h / (acc ? 2.75 : 2.05));
+  if (R > 0) drawPim(ctx, { cx: r.w / 2, cy: r.h * (acc ? 0.6 : 0.47), R, t, st: { ...st, fx: null }, acc, n: 2.7, morph: r.morph, look: r.look, tint: r.tint, seed: 0.8, glow: 0 });
 
   if (now - lastUi > 250) { // text and progress bars do not need 60 fps
     lastUi = now;

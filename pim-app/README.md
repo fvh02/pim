@@ -85,6 +85,7 @@ Die Windows-Builds entstehen auch automatisch in GitHub Actions (Workflow „Pim
 
 - Nur Windows 10/11. Musik und Steam funktionieren nur dort.
 - Steam schreibt den Fortschritt nur alle paar Sekunden. Prozent und Tempo springen deshalb.
+- Als laufend zählt ein Steam-Download nur, wenn sich seine Bytes in den letzten 2 Minuten bewegt haben oder Steam ihn beim Start von Pim als „lädt“ markiert. Wartende, pausierte oder liegengebliebene Updates zeigt Pim nicht an.
 - Kein direkter API-Zugang zu Dropbox, Google Drive oder iCloud. Dafür braucht es die jeweilige Desktop-App.
 - Die Zwischenablage erfasst Text und Bilder, keine Dateien. Kopiert ein Programm beides (z. B. Excel), zählt der Text.
 - Das Mausrad steuert die Lautstärke des Standard-Ausgabegeräts, nicht einzelner Apps.

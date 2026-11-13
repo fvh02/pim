@@ -30,6 +30,22 @@ const battery = require('../lib/battery');
   const active = steam.scan(libs).map(d => [d.name, d.done, d.total]).sort();
   assert.deepStrictEqual(active, [['Counter-Strike', 500, 1000], ['Portal 2', 0, 2000]]);
 
+  // --- only running downloads count: flagged by Steam, or bytes moving recently
+  const pend = [
+    { appid: 'a', name: 'Alt', done: 5, total: 10, stateFlags: 1026 },          // update queued/leftover, never moves
+    { appid: 'b', name: 'Läuft', done: 5, total: 10, stateFlags: 1048838 },      // Downloading flag
+    { appid: 'c', name: 'Pausiert', done: 5, total: 10, stateFlags: 1048576 | 512 },
+    { appid: 'd', name: 'Bewegt', done: 5, total: 10, stateFlags: 1026 },
+  ];
+  let t1 = steam.track(pend, new Map(), 0);
+  assert.deepStrictEqual(t1.active.map(d => d.appid), ['b']);
+  const pend2 = pend.map(d => (d.appid === 'd' ? { ...d, done: 7 } : d));
+  let t2 = steam.track(pend2, t1.next, 2000);
+  assert.deepStrictEqual(t2.active.map(d => d.appid), ['b', 'd']);
+  assert.strictEqual(t2.active[1].speed, 1); // 2 bytes in 2 s
+  const t3 = steam.track(pend2, t2.next, 2000 + 3 * 60 * 1000);       // no movement for 3 min: flag alone expires too
+  assert.deepStrictEqual(t3.active.map(d => d.appid), []);
+
   // --- free file names never overwrite
   const taken = new Set(['a.txt', 'a (1).txt']);
   assert.strictEqual(await upload.freeName('a.txt', async n => taken.has(n)), 'a (2).txt');

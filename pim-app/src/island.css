@@ -21,19 +21,19 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .muted { color: var(--muted); }
 
 /* island: flush with the top edge, rounded only at the bottom like a notch */
-.island { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 320px; height: 46px; background: var(--island); border-radius: 0 0 18px 18px; display: flex; flex-direction: column; overflow: hidden; transition: width .2s cubic-bezier(.3, 1.2, .5, 1), height .2s cubic-bezier(.3, 1.2, .5, 1), border-radius .2s; }
+.island { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 340px; height: 56px; background: var(--island); border-radius: 0 0 18px 18px; display: flex; flex-direction: column; overflow: hidden; transition: width .2s cubic-bezier(.3, 1.2, .5, 1), height .2s cubic-bezier(.3, 1.2, .5, 1), border-radius .2s; }
 body.open .island { border-radius: 0 0 22px 22px; }
 
-.bar { display: flex; align-items: center; gap: 8px; height: 46px; padding: 0 14px 0 4px; flex: none; }
-#pim { width: 58px; height: 44px; flex: none; }
-.status { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar { display: flex; align-items: center; gap: 8px; height: 56px; padding: 0 16px 0 6px; flex: none; }
+#pim { width: 78px; height: 56px; flex: none; }
+.status { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .eq { display: flex; gap: 2px; align-items: flex-end; height: 14px; }
 .eq i { width: 3px; background: var(--ok); border-radius: 2px; animation: eq 0.9s ease-in-out infinite; }
 .eq i:nth-child(2) { animation-delay: -0.3s; } .eq i:nth-child(3) { animation-delay: -0.6s; }
 @keyframes eq { 0%, 100% { height: 4px; } 50% { height: 14px; } }
 .menu-name, .menus { display: none; }
 
-body.open .bar { height: 50px; padding: 4px 12px 0 4px; }
+body.open .bar { height: 60px; padding: 2px 12px 0 6px; }
 body.open .status, body.open .eq { display: none; }
 body.open .menu-name { display: block; flex: 1; font-weight: 700; font-size: 13.5px; white-space: nowrap; }
 body.open .menus { display: flex; gap: 2px; }

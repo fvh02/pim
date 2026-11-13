@@ -66,28 +66,43 @@ function scan(libs) {
   return out;
 }
 
-// Polls every `ms` and calls onUpdate(list) with bytes/second computed from the previous poll.
+// Manifests also list updates that are queued, paused or left over from a closed Steam. A download counts as running
+// when its byte count moved within the last STALE_MS, or, right after Pim starts (no movement seen yet), when Steam
+// flags it (UpdateRunning 256, Downloading 1048576) and not paused (512). A flag that never moves expires too:
+// Steam may have been closed mid-download.
+const RUNNING = 256 | 1048576, PAUSED = 512, STALE_MS = 2 * 60 * 1000;
+
+// One poll step: pending manifests + state from the last step -> running downloads with speed, and the next state.
+function track(pending, prev, now) {
+  const next = new Map(), active = [];
+  for (const d of pending) {
+    const p = prev.get(d.appid);
+    let e;
+    if (!p) e = { done: d.done, t: now, speed: 0, moved: 0 }; // first sight: no evidence of movement yet
+    // Steam flushes the manifest only every few seconds: keep the last speed until the byte count moves
+    else if (p.done === d.done) e = p;
+    else e = { done: d.done, t: now, speed: now > p.t ? Math.max(0, (d.done - p.done) / ((now - p.t) / 1000)) : 0, moved: now };
+    next.set(d.appid, e);
+    const flagged = (d.stateFlags & RUNNING) && !(d.stateFlags & PAUSED) && now - e.t < STALE_MS;
+    const moving = e.moved && now - e.moved < STALE_MS;
+    if (flagged || moving) active.push({ ...d, speed: moving ? e.speed : 0 });
+  }
+  return { active, next };
+}
+
+// Polls every `ms` and calls onUpdate(list) with the running downloads.
 function watch(onUpdate, ms = 3000) {
   let libs = null, prev = new Map(), timer = null, stopped = false;
   const tick = async () => {
     if (stopped) return;
     if (!libs) { const root = await steamRoot(); libs = root ? libraries(root) : []; }
-    const now = Date.now();
-    const next = new Map();
-    const list = scan(libs).map(d => {
-      const p = prev.get(d.appid);
-      // Steam flushes the manifest only every few seconds: keep the last speed until the byte count moves.
-      if (p && p.done === d.done) { next.set(d.appid, p); return { ...d, speed: p.speed }; }
-      const speed = p && now > p.t ? Math.max(0, (d.done - p.done) / ((now - p.t) / 1000)) : 0;
-      next.set(d.appid, { done: d.done, t: now, speed });
-      return { ...d, speed };
-    });
+    const { active, next } = track(scan(libs), prev, Date.now());
     prev = next;
-    onUpdate(list);
+    onUpdate(active);
     timer = setTimeout(tick, ms);
   };
   tick();
   return () => { stopped = true; clearTimeout(timer); };
 }
 
-module.exports = { parseVdf, libraries, scan, watch };
+module.exports = { parseVdf, libraries, scan, track, watch };
