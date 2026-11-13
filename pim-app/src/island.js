@@ -55,7 +55,7 @@ document.addEventListener('mouseover', e => {
   m.addEventListener('mouseleave', () => m.classList.remove('run'), { once: true });
 });
 
-const state = { media: null, steam: [], clips: [], uploads: new Map(), flash: null, look: [0, 0.15], sys: null, bt: [], pc: null, prefs: { acc: 'auto', color: null, gameMode: true }, note: null, update: null, hover: false };
+const state = { media: null, steam: [], clips: [], uploads: new Map(), flash: null, look: [0, 0.15], sys: null, bt: [], pc: null, prefs: { acc: 'auto', color: null, gameMode: true, updateNotify: true }, note: null, update: null, hover: false };
 /* Sleep: 5 min without mouse movement -> yawn -> sleep. Moving the mouse again -> surprised -> wave -> idle.
    Copying something counts as activity too (keyboard users). */
 const SLEEP_AFTER = 5 * 60 * 1000, YAWN_MS = 3500, SURPRISE_MS = 1100, WAVE_MS = 2400;
@@ -355,10 +355,12 @@ function renderLook() {
   pick.addEventListener('change', () => savePrefs({ color: pick.value }));
   sw.append(pick);
   $('pGame').checked = state.prefs.gameMode;
+  $('pNotify').checked = state.prefs.updateNotify !== false;
 }
 async function savePrefs(p) { state.prefs = await pim.setPrefs(p); renderLook(); }
 $('pAcc').addEventListener('change', e => savePrefs({ acc: e.target.value }));
 $('pGame').addEventListener('change', e => savePrefs({ gameMode: e.target.checked }));
+$('pNotify').addEventListener('change', e => savePrefs({ updateNotify: e.target.checked }));
 
 function renderUpdate() {
   const u = state.update;
@@ -381,9 +383,6 @@ function renderUpdate() {
 }
 $('uBtn').addEventListener('click', () => (['ready', 'portable'].includes(state.update.status) ? pim.updateInstall() : pim.updateCheck()));
 pim.onUpdate(u => {
-  // a new version was found and downloaded: Pim celebrates briefly
-  const was = state.update && state.update.status;
-  if ((u.status === 'ready' || u.status === 'portable') && was !== u.status) flash('finished', 4000);
   state.update = u; renderUpdate();
 });
 
@@ -441,10 +440,13 @@ $('stForm').addEventListener('submit', async e => {
 /* ---------- mascot and pill status ---------- */
 function flash(name, ms) { state.flash = { name, until: Date.now() + ms }; }
 function note(text, ms = 1200) { state.note = { text, until: Date.now() + ms }; }
+// a newer version is on the way or waiting to be installed, and the user wants to hear about it
+const updatePending = () => state.prefs.updateNotify !== false && !!state.update && ['downloading', 'ready', 'portable'].includes(state.update.status);
 function mascotState() {
   const now = Date.now();
   if ([...state.uploads.values()].some(u => u.status === 'running')) return 'upload';
   if (state.flash && state.flash.until > now) return state.flash.name;
+  if (updatePending()) return 'finished'; // stays until the update is installed
   if (lowBattery()) return 'rate limit';
   if (state.steam.length) return 'working';
   if (state.media && state.media.playing) return 'dancing';
@@ -459,7 +461,7 @@ function statusLine() {
   if (state.steam.length) { const d = state.steam[0]; return `⬇ ${d.name} ${Math.floor((d.done / d.total) * 100)} %`; }
   const m = state.media;
   if (m && m.active && m.title) return `${m.title}${m.artist ? ' – ' + m.artist : ''}`;
-  if (state.update && state.update.status === 'ready') return `Update ${state.update.next} bereit`;
+  if (updatePending()) return state.update.status === 'downloading' ? `Lade Update ${state.update.next} …` : `Update ${state.update.next} bereit`;
   if (state.hover) return 'Strg halten zum Öffnen';
   return '';
 }

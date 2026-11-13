@@ -22,13 +22,13 @@ Pim ist eine Island am oberen Bildschirmrand von Windows, wie die Notch beim Mac
 | **Steam** | Laufende Steam-Downloads, eine Zeile pro Spiel: Titel, Balken, Größe, Tempo. Lange Titel enden mit „…“ und laufen beim Darüberfahren durch. |
 | **Speicher** | Speicherorte einrichten und den Standard für Uploads wählen. |
 | **Akku** | Laptop-Akku mit Restzeit sowie Bluetooth-Kopfhörer und -Headsets. Unter 20 % (Laptop) oder 15 % (Bluetooth) warnt die Pille. |
-| **Pim** | Accessoire (oder automatisch nach Jahreszeit), Farbe, Spielmodus, Updates. |
+| **Pim** | Accessoire (oder automatisch nach Jahreszeit), Farbe, Spielmodus, Update-Benachrichtigung, Updates. |
 
 Alle Knöpfe sind Symbole. Beim Darüberfahren zeigt ein Tooltip, was sie tun.
 
 **Spielmodus:** Läuft ein Spiel, ein Video oder eine Präsentation im Vollbild, blendet sich Pim aus. Danach erscheint es wieder.
 
-Im Grundzustand ist Pim weiß und atmet und blinzelt. Seine Augen folgen dann dem Mauszeiger auf dem ganzen Bildschirm, ebenso bei kurzen Reaktionen wie „kopiert“, „Upload fertig“ oder beim Drag & Drop. Ansonsten reagiert Pim auf das, was passiert. Bei Musik tanzt es, bei Steam-Downloads arbeitet es, beim Upload wird es zur Kiste, bei leerem Akku sackt es zusammen. Bewegt sich die Maus 5 Minuten nicht, gähnt Pim und schläft ein. Bewegt sie sich wieder, wacht es überrascht auf, winkt und ist wieder bereit. Findet Pim ein Update, freut es sich kurz. Nach der Installation tanzt es 10 Sekunden lang.
+Im Grundzustand ist Pim weiß und atmet und blinzelt. Seine Augen folgen dann dem Mauszeiger auf dem ganzen Bildschirm, ebenso bei kurzen Reaktionen wie „kopiert“, „Upload fertig“ oder beim Drag & Drop. Ansonsten reagiert Pim auf das, was passiert. Bei Musik tanzt es, bei Steam-Downloads arbeitet es, beim Upload wird es zur Kiste, bei leerem Akku sackt es zusammen. Bewegt sich die Maus 5 Minuten nicht, gähnt Pim und schläft ein. Bewegt sie sich wieder, wacht es überrascht auf, winkt und ist wieder bereit. Findet Pim ein Update, freut es sich, bis das Update installiert ist. Abschalten lässt sich das im Menü „Pim“ mit „Bei Updates benachrichtigen“ (Standard: an). Nach der Installation tanzt es 10 Sekunden lang.
 
 ### Speicherorte
 

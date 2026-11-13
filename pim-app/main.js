@@ -18,7 +18,7 @@ let win = null, tray = null;
 
 /* ---------- settings (userData/settings.json) ---------- */
 const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
-let settings = { targets: [], defaultTarget: null, pins: [], prefs: { acc: 'auto', color: null, gameMode: true } };
+let settings = { targets: [], defaultTarget: null, pins: [], prefs: { acc: 'auto', color: null, gameMode: true, updateNotify: true } };
 function loadSettings() {
   try {
     const saved = JSON.parse(fs.readFileSync(settingsFile(), 'utf8'));
@@ -229,6 +229,7 @@ function ipc() {
     if (p && str(p.acc) && /^[a-z ]{1,20}$/.test(p.acc)) next.acc = p.acc;
     if (p && 'color' in p) next.color = str(p.color) && /^#[0-9a-f]{6}$/i.test(p.color) ? p.color : null;
     if (p && typeof p.gameMode === 'boolean') next.gameMode = p.gameMode;
+    if (p && typeof p.updateNotify === 'boolean') next.updateNotify = p.updateNotify;
     settings.prefs = next; saveSettings(); applyVisibility();
     return next;
   });
