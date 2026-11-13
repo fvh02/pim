@@ -55,20 +55,7 @@ npm run dist     # Windows-Build nach dist/ (portable .exe und Installer)
 
 Die Windows-Builds entstehen auch automatisch in GitHub Actions (Workflow „Pim Windows build“, Artefakt „Pim-Windows“).
 
-**Neue Version veröffentlichen:**
-
-1. `version` in `package.json` erhöhen, z. B. auf `0.4.0`, und committen.
-2. Passendes Tag setzen und pushen:
-
-```bash
-git tag v0.4.0
-```
-
-```bash
-git push origin v0.4.0
-```
-
-GitHub Actions baut dann unter Windows, veröffentlicht das Release mit `Pim-Setup-0.4.0.exe`, portabler `.exe` und `latest.yml`, und alle installierten Pims aktualisieren sich. Tag und Version müssen übereinstimmen, sonst bricht der Workflow ab.
+**Neue Version veröffentlichen:** `version` in `package.json` erhöhen, z. B. auf `0.4.0`, und nach `main` pushen. GitHub Actions baut dann unter Windows. Gibt es für diese Version noch kein Release, veröffentlicht der Workflow es mit Tag `v0.4.0`, `Pim-Setup-0.4.0.exe`, portabler `.exe` und `latest.yml`. Alle installierten Pims aktualisieren sich daraufhin. Ein gepushtes Tag `v0.4.0` löst das Release ebenfalls aus.
 
 | Datei | Inhalt |
 |---|---|

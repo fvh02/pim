@@ -1,15 +1,16 @@
 name: Pim Windows build
 
-# Branch pushes build and test. A tag like v0.3.0 also publishes a GitHub Release,
-# which installed Pim apps pick up as an update.
+# Every push builds and tests. A push to main whose package.json version has no release yet
+# (or a tag like v0.3.0) publishes a GitHub Release, which installed Pim apps pick up as an update.
 on:
   push:
     paths: ['pim-app/**', '.github/workflows/pim-windows.yml']
+    branches: ['**']
     tags: ['v*']
   workflow_dispatch:
 
 permissions:
-  contents: write # create the release on tags
+  contents: write # create the release
 
 jobs:
   build:
@@ -28,13 +29,24 @@ jobs:
       - name: Tag must match package.json version
         if: startsWith(github.ref, 'refs/tags/v')
         run: test "v$(node -p "require('./package.json').version")" = "${GITHUB_REF_NAME}"
+      - name: Decide whether to publish
+        id: rel
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          v="v$(node -p "require('./package.json').version")"
+          publish=false
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then publish=true
+          elif [[ "$GITHUB_REF" == refs/heads/main ]] && ! gh release view "$v" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then publish=true; fi
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+          echo "$v publish=$publish"
       - name: Build
-        if: "!startsWith(github.ref, 'refs/tags/v')"
+        if: steps.rel.outputs.publish != 'true'
         run: npm run dist
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       - name: Build and publish release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: steps.rel.outputs.publish == 'true'
         run: npm run release
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
