@@ -115,8 +115,13 @@ section[data-panel="clips"] .list { flex: 1; min-height: 0; max-height: none; }
 .group { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; margin: 4px 2px 0; list-style: none; }
 
 /* steam: one line per game */
-.dl { display: grid; grid-template-columns: minmax(0, 1fr) 80px 16ch 8ch; gap: 10px; align-items: center; padding: 6px 10px; }
+.dl { display: grid; grid-template-columns: minmax(0, 1fr) 70px 16ch 8ch; gap: 10px; align-items: center; padding: 6px 10px; }
 .dl .name { font-weight: 600; }
+.dl-name { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.dl-name .name { flex: 1; min-width: 0; }
+.src { font: 600 9.5px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); border: 1px solid var(--line); border-radius: 5px; padding: 1px 4px; flex: none; }
+.bar-track.busy .bar-fill { width: 35% !important; animation: busy 1.2s ease-in-out infinite alternate; } /* size unknown */
+@keyframes busy { from { transform: translateX(-10%); } to { transform: translateX(200%); } }
 .dl .num { font: 11px var(--mono); color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .dl .speed { min-width: 7ch; text-align: right; }
 

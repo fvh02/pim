@@ -18,7 +18,7 @@ Pim ist eine Island am oberen Bildschirmrand von Windows, wie die Notch beim Mac
 |---|---|
 | **Musik** | Kleiner Player für den aktuellen Song: Cover, Titel, Fortschritt, vorheriger Titel, 10 s zurück, Play/Pause, 10 s vor, nächster Titel. Funktioniert mit jedem Player, der die Windows-Mediensteuerung nutzt: Spotify, Apple Music, YouTube/Netflix im Browser, VLC und andere. |
 | **Zwischenablage** | Die letzten 50 kopierten Texte und 10 Bilder. Ein Klick kopiert einen Eintrag erneut, Bilder lassen sich direkt hochladen. Der Verlauf liegt nur im Arbeitsspeicher, damit kopierte Passwörter nie auf der Festplatte landen. Angeheftete Einträge bleiben dauerhaft und werden gespeichert: Texte in `settings.json`, Bilder als PNG. |
-| **Steam** | Laufende Steam-Downloads, eine Zeile pro Spiel: Titel, Balken, Größe, Tempo. Lange Titel enden mit „…“ und laufen beim Darüberfahren durch. |
+| **Downloads** | Laufende Downloads aus Steam und aus dem Browser (Chrome, Edge, Brave, Opera, Firefox), eine Zeile pro Download: Quelle, Name, Balken, Größe, Tempo. Lange Namen enden mit „…“ und laufen beim Darüberfahren durch. Browser verraten die Endgröße nicht, der Balken läuft dort deshalb ohne Prozent. Ist ein Browser-Download fertig, meldet die Pille das. |
 | **Speicher** | Speicherorte einrichten und den Standard für Uploads wählen. |
 | **Akku** | Laptop-Akku mit Restzeit sowie Bluetooth-Kopfhörer und -Headsets. Unter 20 % (Laptop) oder 15 % (Bluetooth) warnt die Pille. |
 | **Pim** | Accessoire (oder automatisch nach Jahreszeit), Farbe, Größe, Spielmodus, Update-Benachrichtigung, Updates. |
@@ -77,7 +77,8 @@ Die Windows-Builds entstehen auch automatisch in GitHub Actions (Workflow „Pim
 | `lib/bridge.ps1`, `lib/bridge.js` | Windows-Brücke (PowerShell, keine Zusatzpakete): Mediensteuerung (SMTC), Systemlautstärke, Vollbild-Erkennung, Zwischenablage-Zähler |
 | `lib/battery.js` | Bluetooth-Akkustände |
 | `lib/updater.js` | Selbst-Update über GitHub Releases |
-| `lib/steam.js` | Steam-Bibliotheken finden und Manifeste lesen |
+| `lib/steam.js` | Steam-Bibliotheken, Manifeste und Download-Log lesen |
+| `lib/downloads.js` | Browser-Downloads im Download-Ordner erkennen |
 | `lib/upload.js` | Upload in Ordner/SMB und per WebDAV |
 | `src/pim.js` | Pim zeichnen (Canvas, ohne Bilder) |
 | `src/island.*` | Oberfläche der Island |
@@ -87,7 +88,8 @@ Die Windows-Builds entstehen auch automatisch in GitHub Actions (Workflow „Pim
 
 - Nur Windows 10/11. Musik und Steam funktionieren nur dort.
 - Steam schreibt den Fortschritt nur alle paar Sekunden. Prozent und Tempo springen deshalb.
-- Als laufend zählt ein Steam-Download nur, wenn sich seine Bytes in den letzten 2 Minuten bewegt haben oder Steam ihn beim Start von Pim als „lädt“ markiert. Wartende, pausierte oder liegengebliebene Updates zeigt Pim nicht an.
+- Steam-Downloads erkennt Pim an Steams Download-Log (`logs/content_log.txt`) und an den Manifesten. Läuft Steam nicht, zeigt Pim keine Steam-Downloads.
+- Browser-Downloads erkennt Pim nur im Windows-Download-Ordner.
 - Kein direkter API-Zugang zu Dropbox, Google Drive oder iCloud. Dafür braucht es die jeweilige Desktop-App.
 - Die Zwischenablage erfasst Text und Bilder, keine Dateien. Kopiert ein Programm beides (z. B. Excel), zählt der Text.
 - Das Mausrad steuert die Lautstärke des Standard-Ausgabegeräts, nicht einzelner Apps.

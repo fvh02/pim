@@ -8,6 +8,7 @@ const bridge = require('./lib/bridge');
 const battery = require('./lib/battery');
 const updater = require('./lib/updater');
 const steam = require('./lib/steam');
+const downloads = require('./lib/downloads');
 const upload = require('./lib/upload');
 
 if (!app.requestSingleInstanceLock()) app.quit();
@@ -195,6 +196,7 @@ function ipc() {
   });
   ipcMain.on('media', (_e, cmd) => sys.send(cmd));
   ipcMain.on('steam:open', () => shell.openExternal('steam://open/downloads'));
+  ipcMain.on('downloads:open', () => shell.openPath(app.getPath('downloads')));
 
   const clipById = id => clips.find(c => c.id === id);
   ipcMain.on('clip:copy', (_e, id) => {
@@ -284,7 +286,7 @@ function ipc() {
 let sys = { send() {}, stop() {} };
 let justUpdated = false;
 let upd = { check() {}, install() {}, get: () => ({ status: 'idle', version: app.getVersion() }) };
-const snap = { media: null, steam: [], sys: null, bt: [] }; // last values, for a renderer that (re)loads late
+const snap = { media: null, steam: [], files: [], sys: null, bt: [] }; // last values, for a renderer that (re)loads late
 let bridgeSeen = 0, clipSeq = null;
 app.whenReady().then(() => {
   loadSettings();
@@ -303,6 +305,7 @@ app.whenReady().then(() => {
     if (s.clipSeq !== undefined && s.clipSeq !== clipSeq) { clipSeq = s.clipSeq; pollClipboard(); } // Windows tells us when the clipboard changed
   });
   steam.watch(list => { snap.steam = list; send('steam', list); });
+  downloads.watch(app.getPath('downloads'), list => { snap.files = list; send('files', list); }, f => send('fileDone', f));
   battery.watch(list => { snap.bt = list; send('bt', list); });
   upd = updater.start(u => send('update', u));
   // global cursor for Pim's eyes, in window coordinates; only while Pim is visible

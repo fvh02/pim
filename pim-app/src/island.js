@@ -55,7 +55,7 @@ document.addEventListener('mouseover', e => {
   m.addEventListener('mouseleave', () => m.classList.remove('run'), { once: true });
 });
 
-const state = { media: null, steam: [], clips: [], uploads: new Map(), flash: null, look: [0, 0.15], sys: null, bt: [], pc: null, prefs: { acc: 'auto', color: null, gameMode: true, updateNotify: true, followWindows: true, scale: 1 }, note: null, update: null, hover: false };
+const state = { media: null, steam: [], files: [], clips: [], uploads: new Map(), flash: null, look: [0, 0.15], sys: null, bt: [], pc: null, prefs: { acc: 'auto', color: null, gameMode: true, updateNotify: true, followWindows: true, scale: 1 }, note: null, update: null, hover: false };
 /* Sleep: 5 min without mouse movement -> yawn -> sleep. Moving the mouse again -> surprised -> wave -> idle.
    Copying something counts as activity too (keyboard users). */
 const SLEEP_AFTER = 5 * 60 * 1000, YAWN_MS = 3500, SURPRISE_MS = 1100, WAVE_MS = 2400;
@@ -79,7 +79,7 @@ function restState(now) {
 const MENUS = [
   { id: 'music', name: 'Musik', icon: 'music', w: 380 },
   { id: 'clips', name: 'Zwischenablage', icon: 'clip', w: 640, h: 380 },
-  { id: 'steam', name: 'Steam', icon: 'pad', w: 480 },
+  { id: 'steam', name: 'Downloads', icon: 'download', w: 500 },
   { id: 'storage', name: 'Speicher', icon: 'drive', w: 420 },
   { id: 'battery', name: 'Akku', icon: 'battery', w: 320 },
   { id: 'look', name: 'Pim', icon: 'face', w: 320 },
@@ -268,42 +268,56 @@ function renderClips() {
 pim.onClips(({ clips, fresh }) => { state.clips = clips; renderClips(); if (fresh) { touch(); flash('surprised', 1200); } });
 $('clipClear').addEventListener('click', () => pim.clipClear());
 
-/* ---------- steam: one row per game, updated in place so the hover scroll keeps running ---------- */
-const steamRows = new Map();
+/* ---------- downloads: Steam games and browser files, one row each, updated in place so the hover scroll keeps running ---------- */
+const dlRows = new Map();
+const allDownloads = () => [
+  ...state.steam.map(d => ({ ...d, id: 's:' + d.appid, source: 'Steam' })),
+  ...state.files,
+];
 function renderSteam() {
-  const list = $('steamList');
-  const ids = new Set(state.steam.map(d => d.appid));
-  for (const [id, row] of steamRows) if (!ids.has(id)) { row.li.remove(); steamRows.delete(id); }
-  for (const d of state.steam) {
-    let row = steamRows.get(d.appid);
+  const list = $('steamList'), items = allDownloads();
+  const ids = new Set(items.map(d => d.id));
+  for (const [id, row] of dlRows) if (!ids.has(id)) { row.li.remove(); dlRows.delete(id); }
+  for (const d of items) {
+    let row = dlRows.get(d.id);
     if (!row) {
-      row = { li: el('li', 'item dl'), name: el('div', 'name marq'), track: el('div', 'bar-track'), fill: el('div', 'bar-fill'), size: el('span', 'num'), speed: el('span', 'num speed') };
-      row.track.append(row.fill); row.li.append(row.name, row.track, row.size, row.speed);
-      list.append(row.li); steamRows.set(d.appid, row);
+      row = { li: el('li', 'item dl'), name: el('div', 'name marq'), src: el('span', 'src'), track: el('div', 'bar-track'), fill: el('div', 'bar-fill'), size: el('span', 'num'), speed: el('span', 'num speed') };
+      const nameBox = el('div', 'dl-name'); nameBox.append(row.src, row.name);
+      row.track.append(row.fill); row.li.append(nameBox, row.track, row.size, row.speed);
+      list.append(row.li); dlRows.set(d.id, row);
     }
-    const pct = d.total ? (d.done / d.total) * 100 : 0;
+    row.src.textContent = d.source;
     row.name.textContent = d.name; row.name.title = d.name;
-    row.fill.style.width = pct.toFixed(1) + '%';
-    row.size.textContent = `${fmtBytes(d.done)} / ${fmtBytes(d.total)}`;
+    row.track.classList.toggle('busy', !d.total); // browsers do not tell the final size
+    row.fill.style.width = d.total ? ((d.done / d.total) * 100).toFixed(1) + '%' : '';
+    row.size.textContent = d.total ? `${fmtBytes(d.done)} / ${fmtBytes(d.total)}` : fmtBytes(d.done);
     row.speed.textContent = d.speed ? fmtBytes(d.speed) + '/s' : '–';
   }
-  $('steamEmpty').hidden = state.steam.length > 0;
-  list.hidden = !state.steam.length;
+  $('steamEmpty').hidden = items.length > 0;
+  list.hidden = !items.length;
+  $('steamOpen').hidden = !state.steam.length;
 }
-// A newly started download over 2 GB: Pim works for 10 s, then goes back to idle (no endless animation).
-// Downloads stay remembered for a minute, so one missed poll (manifest mid-write) does not trigger it again.
-const BIG_DOWNLOAD = 2e9, seenDownloads = new Map(); // appid -> last seen
-pim.onSteam(list => {
+// A download over 2 GB: Pim works for 10 s, then goes back to idle (no endless animation). Steam knows the size
+// up front; for browser files it triggers when the file grows past 2 GB. Entries stay remembered for a minute,
+// so one missed poll does not trigger it again.
+const BIG_DOWNLOAD = 2e9, seenDownloads = new Map(); // id -> { t, big }
+function noticeDownloads() {
   const now = Date.now();
-  for (const d of list) {
-    if (!seenDownloads.has(d.appid) && d.total > BIG_DOWNLOAD) flash('working', 10000);
-    seenDownloads.set(d.appid, now);
+  for (const d of allDownloads()) {
+    const seen = seenDownloads.get(d.id), big = Math.max(d.total || 0, d.done) > BIG_DOWNLOAD;
+    if (big && !(seen && seen.big)) flash('working', 10000);
+    seenDownloads.set(d.id, { t: now, big: big || !!(seen && seen.big) });
   }
-  for (const [id, t] of seenDownloads) if (now - t > 60000) seenDownloads.delete(id);
-  const changed = list.length !== state.steam.length;
-  state.steam = list; renderSteam();
-  if (changed && MENUS[menu].id === 'steam') fit();
-});
+  for (const [id, s] of seenDownloads) if (now - s.t > 60000) seenDownloads.delete(id);
+}
+function downloadsChanged(before) {
+  noticeDownloads(); renderSteam();
+  if (before !== allDownloads().length && MENUS[menu].id === 'steam') fit();
+}
+pim.onSteam(list => { const n = allDownloads().length; state.steam = list; downloadsChanged(n); });
+pim.onFiles(list => { const n = allDownloads().length; state.files = list; downloadsChanged(n); });
+pim.onFileDone(f => { flash('finished', 2500); note(`✓ ${f.name} heruntergeladen`, 4000); });
+$('dlFolder').addEventListener('click', () => pim.openDownloads());
 $('steamOpen').addEventListener('click', () => pim.steamOpen());
 
 /* ---------- uploads: no menu, status in the pill ---------- */
@@ -494,7 +508,8 @@ function statusLine() {
   if (state.note && state.note.until > Date.now()) return state.note.text;
   const low = lowBattery();
   if (low) return `🪫 ${low.name} ${low.level} %`;
-  if (state.steam.length) { const d = state.steam[0]; return `⬇ ${d.name} ${Math.floor((d.done / d.total) * 100)} %`; }
+  const dl = allDownloads()[0];
+  if (dl) return `⬇ ${dl.name} ${dl.total ? Math.floor((dl.done / dl.total) * 100) + ' %' : fmtBytes(dl.done)}`;
   const m = state.media;
   if (m && m.active && m.title) return `${m.title}${m.artist ? ' – ' + m.artist : ''}`;
   if (updatePending()) return state.update.status === 'downloading' ? `Lade Update ${state.update.next} …` : `Update ${state.update.next} bereit`;
@@ -547,7 +562,7 @@ fillForm();
 pim.targets().then(t => { targets = t; renderTargets(); });
 pim.snapshot().then(s => {
   if (s.justUpdated) flash('dancing', 10000); // first start after an update installed
-  Object.assign(state, { update: s.update, media: s.media, steam: s.steam || [], clips: s.clips || [], sys: s.sys, bt: s.bt || [], prefs: s.prefs || state.prefs });
+  Object.assign(state, { update: s.update, media: s.media, steam: s.steam || [], files: s.files || [], clips: s.clips || [], sys: s.sys, bt: s.bt || [], prefs: s.prefs || state.prefs });
   renderMedia(); renderSteam(); renderClips(); renderBattery(); renderLook(); renderUpdate();
 });
 setInterval(renderClips, 60000); // refresh "vor x min"

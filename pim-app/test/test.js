@@ -7,6 +7,7 @@ const http = require('http');
 const steam = require('../lib/steam');
 const upload = require('../lib/upload');
 const battery = require('../lib/battery');
+const downloads = require('../lib/downloads');
 
 (async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pim-test-'));
@@ -45,6 +46,36 @@ const battery = require('../lib/battery');
   assert.strictEqual(t2.active[1].speed, 1); // 2 bytes in 2 s
   const t3 = steam.track(pend2, t2.next, 2000 + 3 * 60 * 1000);       // no movement for 3 min: flag alone expires too
   assert.deepStrictEqual(t3.active.map(d => d.appid), []);
+
+  // --- Steam content_log: the latest state per app decides, paused/suspended do not count
+  const log = steam.parseContentLog([
+    '[2026-11-13 10:00:00] AppID 570 state changed : Update Required,Update Queued,',
+    '[2026-11-13 10:00:01] AppID 570 state changed : Update Required,Update Running,Update Started,Downloading,',
+    '[2026-11-13 10:00:02] AppID 730 state changed : Update Required,Update Running,Downloading,',
+    '[2026-11-13 10:00:03] AppID 730 state changed : Update Required,Update Suspended,',
+    '[2026-11-13 10:00:04] Current download rate: 80.000 Mbps',
+    '[2026-11-13 10:00:05] AppID 440 state changed : Fully Installed,',
+  ].join('\r\n'));
+  assert.deepStrictEqual([...log.running], ['570']);
+  assert.strictEqual(log.rate, 10e6);
+  const viaLog = steam.track([{ appid: '570', name: 'Dota 2', done: 1, total: 9, stateFlags: 1026 }], new Map(), 0, log);
+  assert.deepStrictEqual(viaLog.active.map(d => [d.appid, d.speed]), [['570', 10e6]]);
+
+  // --- browser downloads: temp files in the download folder, finished when the final file appears
+  const dlDir = path.join(tmp, 'Downloads'); fs.mkdirSync(dlDir);
+  fs.writeFileSync(path.join(dlDir, 'film.mp4.crdownload'), Buffer.alloc(1000));
+  fs.writeFileSync(path.join(dlDir, 'iso.img.part'), Buffer.alloc(10));
+  fs.writeFileSync(path.join(dlDir, 'fertig.pdf'), 'x');
+  let d1 = downloads.track(downloads.listTemp(dlDir), new Map(), 0, dlDir);
+  assert.deepStrictEqual(d1.active.map(d => [d.name, d.source, d.done]).sort(), [['film.mp4', 'Browser', 1000], ['iso.img', 'Firefox', 10]]);
+  fs.appendFileSync(path.join(dlDir, 'film.mp4.crdownload'), Buffer.alloc(2000));
+  let d2 = downloads.track(downloads.listTemp(dlDir), d1.next, 1000, dlDir);
+  assert.ok(d2.active.find(d => d.name === 'film.mp4').speed > 0);
+  fs.renameSync(path.join(dlDir, 'film.mp4.crdownload'), path.join(dlDir, 'film.mp4'));
+  fs.rmSync(path.join(dlDir, 'iso.img.part')); // cancelled: no final file
+  const d3 = downloads.track(downloads.listTemp(dlDir), d2.next, 2000, dlDir);
+  assert.deepStrictEqual(d3.active, []);
+  assert.deepStrictEqual(d3.finished.map(f => f.name), ['film.mp4']);
 
   // --- free file names never overwrite
   const taken = new Set(['a.txt', 'a (1).txt']);
