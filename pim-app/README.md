@@ -6,13 +6,17 @@ Pim ist eine Island am oberen Bildschirmrand von Windows, wie die Notch beim Mac
 
 | Tab | Was es tut |
 |---|---|
-| **Musik** | Zeigt Titel, Interpret, Cover und Fortschritt des aktuellen Players. Zurück, Play/Pause und Weiter steuern ihn live. Funktioniert mit jedem Player, der die Windows-Mediensteuerung nutzt: Spotify, Apple Music, YouTube/Netflix im Browser, VLC und andere. |
-| **Zwischenablage** | Die letzten 50 kopierten Texte. Ein Klick kopiert einen Eintrag erneut. Die Liste liegt nur im Arbeitsspeicher und ist nach dem Beenden weg, damit kopierte Passwörter nie auf der Festplatte landen. |
+| **Musik** | Zeigt Titel, Interpret, Cover und Fortschritt des aktuellen Players. Zurück, Play/Pause und Weiter steuern ihn live. Funktioniert mit jedem Player, der die Windows-Mediensteuerung nutzt: Spotify, Apple Music, YouTube/Netflix im Browser, VLC und andere. Darunter ein Regler für die Systemlautstärke mit Stummschalter. Das Mausrad über der Pille ändert die Lautstärke ebenfalls. |
+| **Zwischenablage** | Die letzten 50 kopierten Texte und 10 Bilder. Ein Klick kopiert einen Eintrag erneut. Bilder lassen sich mit ↑ direkt auf den Standardspeicher hochladen. Der Verlauf liegt nur im Arbeitsspeicher, damit kopierte Passwörter nie auf der Festplatte landen. Mit 📌 angeheftete Einträge bleiben dauerhaft und werden gespeichert: Texte in `settings.json`, Bilder als PNG. |
 | **Steam** | Laufende Steam-Downloads mit Prozent, Größe und Geschwindigkeit. Liest die `appmanifest_*.acf` aller Steam-Bibliotheken, ein Login ist nicht nötig. |
 | **Upload** | Dateien auf die Island ziehen oder klicken. Sie werden auf den gewählten Speicher hochgeladen. Vorhandene Dateien werden nie überschrieben, Pim hängt dann „(1)“ an. |
 | **Speicher** | Speicherorte einrichten und den Standard wählen. |
+| **Akku** | Laptop-Akku mit Restzeit sowie Bluetooth-Kopfhörer und -Headsets mit Ladestand. Fällt ein Akku unter 20 % (Laptop) oder 15 % (Bluetooth), zeigt die Pille eine Warnung. |
+| **Pim** | Accessoire wählen (Mütze, Krone, Brille …) oder automatisch nach Jahreszeit: Hexenhut Ende Oktober, Weihnachtsmütze im Dezember, Partyhut an Silvester, Mütze im Winter. Grundfarbe wählen. Spielmodus ein- oder ausschalten. |
 
-Pim reagiert auf das, was passiert. Bei Musik tanzt es, bei Steam-Downloads arbeitet es, beim Upload wird es zur Kiste. Nach 5 Minuten Ruhe schläft es ein.
+**Spielmodus:** Läuft ein Spiel, ein Video oder eine Präsentation im Vollbild, blendet sich Pim aus. Danach erscheint es wieder. Pim fragt dafür denselben Status ab, den Windows für „Bitte nicht stören“ nutzt.
+
+Pim reagiert auf das, was passiert. Bei Musik tanzt es, bei Steam-Downloads arbeitet es, beim Upload wird es zur Kiste, bei leerem Akku sackt es zusammen. Nach 5 Minuten Ruhe schläft es ein.
 
 ### Speicherorte
 
@@ -49,7 +53,8 @@ Die Windows-Builds entstehen auch automatisch in GitHub Actions (Workflow „Pim
 |---|---|
 | `main.js` | Fenster am oberen Rand, Tray, Einstellungen, Zwischenablage, IPC |
 | `preload.js` | sichere Brücke zur Oberfläche |
-| `lib/media.ps1`, `lib/media.js` | Mediensteuerung über Windows-SMTC (PowerShell, keine Zusatzpakete) |
+| `lib/bridge.ps1`, `lib/bridge.js` | Windows-Brücke (PowerShell, keine Zusatzpakete): Mediensteuerung (SMTC), Systemlautstärke, Vollbild-Erkennung, Zwischenablage-Zähler |
+| `lib/battery.js` | Bluetooth-Akkustände |
 | `lib/steam.js` | Steam-Bibliotheken finden und Manifeste lesen |
 | `lib/upload.js` | Upload in Ordner/SMB und per WebDAV |
 | `src/pim.js` | Pim zeichnen (Canvas, ohne Bilder) |
@@ -60,5 +65,7 @@ Die Windows-Builds entstehen auch automatisch in GitHub Actions (Workflow „Pim
 - Nur Windows 10/11. Musik und Steam funktionieren nur dort.
 - Steam schreibt den Fortschritt nur alle paar Sekunden. Prozent und Tempo springen deshalb.
 - Kein direkter API-Zugang zu Dropbox, Google Drive oder iCloud. Dafür braucht es die jeweilige Desktop-App.
-- Die Zwischenablage speichert nur Text, keine Bilder.
+- Die Zwischenablage erfasst Text und Bilder, keine Dateien. Kopiert ein Programm beides (z. B. Excel), zählt der Text.
+- Der Lautstärkeregler steuert das Standard-Ausgabegerät, nicht einzelne Apps.
+- Den Bluetooth-Akku sieht Pim nur bei Geräten, die ihn an Windows melden (die meisten Kopfhörer). Viele Mäuse, Tastaturen und Xbox-Controller melden ihn nicht. Der Wert wird jede Minute aktualisiert.
 - Die Builds sind nicht signiert. Windows SmartScreen fragt beim ersten Start nach („Weitere Informationen“, dann „Trotzdem ausführen“).

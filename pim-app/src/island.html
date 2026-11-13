@@ -18,6 +18,8 @@
       <button role="tab" data-tab="steam">Steam</button>
       <button role="tab" data-tab="upload">Upload</button>
       <button role="tab" data-tab="storage">Speicher</button>
+      <button role="tab" data-tab="battery">Akku</button>
+      <button role="tab" data-tab="look">Pim</button>
     </nav>
   </header>
 
@@ -39,12 +41,17 @@
           </div>
         </div>
       </div>
+      <div class="volume" id="volume" hidden>
+        <button class="vbtn" id="vMute" aria-label="Stumm schalten">🔊</button>
+        <input type="range" id="vRange" min="0" max="100" step="1" aria-label="Lautstärke">
+        <span class="mono" id="vOut"></span>
+      </div>
     </section>
 
     <section data-panel="clips">
-      <div class="row-head"><span class="muted" id="clipCount"></span><button class="link" id="clipClear">Alle löschen</button></div>
+      <div class="row-head"><span class="muted" id="clipCount"></span><button class="link" id="clipClear">Verlauf leeren</button></div>
       <ul class="list" id="clipList"></ul>
-      <div class="empty" id="clipEmpty">Noch nichts kopiert. Kopierte Texte erscheinen hier und werden beim Beenden vergessen.</div>
+      <div class="empty" id="clipEmpty">Noch nichts kopiert. Kopierte Texte und Bilder erscheinen hier. Nur angeheftete (📌) Einträge bleiben nach dem Beenden erhalten.</div>
     </section>
 
     <section data-panel="steam">
@@ -78,6 +85,19 @@
           <div class="actions"><button type="button" id="fTest">Testen</button><button type="submit" class="primary">Speichern</button></div>
           <p class="msg" id="fMsg" role="status"></p>
         </form>
+      </div>
+    </section>
+
+    <section data-panel="battery">
+      <ul class="list" id="batList"></ul>
+      <div class="empty" id="batEmpty">Kein Akku gefunden. Bluetooth-Kopfhörer erscheinen hier, sobald sie verbunden sind.</div>
+    </section>
+
+    <section data-panel="look">
+      <div class="look">
+        <label>Accessoire <select id="pAcc"></select></label>
+        <div class="field"><span>Farbe</span><div class="swatches" id="pColors"></div></div>
+        <label class="check"><input type="checkbox" id="pGame"> Spielmodus: Pim bei Vollbild-Spielen, -Videos und Präsentationen ausblenden</label>
       </div>
     </section>
   </main>

@@ -6,7 +6,7 @@ const fmtBytes = b => (b >= 1e9 ? (b / 1e9).toFixed(2) + ' GB' : b >= 1e6 ? (b /
 const ago = t => { const s = (Date.now() - t) / 1000; return s < 60 ? 'gerade eben' : s < 3600 ? `vor ${Math.floor(s / 60)} min` : `vor ${Math.floor(s / 3600)} h`; };
 const appName = id => (id || '').split(/[!\\/]/).pop().replace(/\.exe$/i, '').replace(/^.*\.(?=[^.]+$)/, '') || 'Player';
 
-const state = { media: null, steam: [], clips: [], uploads: new Map(), flash: null, lastActivity: Date.now(), look: [0, 0.15] };
+const state = { media: null, steam: [], clips: [], uploads: new Map(), flash: null, lastActivity: Date.now(), look: [0, 0.15], sys: null, bt: [], pc: null, prefs: { acc: 'auto', color: null, gameMode: true }, note: null };
 const touch = () => { state.lastActivity = Date.now(); };
 
 /* ---------- open / close ---------- */
@@ -74,22 +74,137 @@ pim.onMedia(m => {
 });
 
 /* ---------- clipboard ---------- */
+function clipItem(c) {
+  const li = el('li', 'item clickable clip' + (c.pinned ? ' pinned' : '')); li.title = 'Klicken zum Kopieren';
+  const g = el('div', 'grow');
+  if (c.type === 'image') { const img = el('img'); img.src = c.thumb; img.alt = `Bild ${c.width}×${c.height}`; g.append(img, el('div', 'sub', `Bild ${c.width}×${c.height} · ${ago(c.at)}`)); }
+  else g.append(el('div', 'text', c.text.slice(0, 400)), el('div', 'sub', ago(c.at)));
+  const btn = (label, title, fn, on) => { const b = el('button', 'ibtn' + (on ? ' on' : ''), label); b.title = title; b.setAttribute('aria-label', title); b.addEventListener('click', e => { e.stopPropagation(); fn(); }); return b; };
+  li.append(g);
+  if (c.type === 'image') li.append(btn('↑', 'Auf Standardspeicher hochladen', () => { pim.clipUpload(c.id); setTab('upload'); }));
+  li.append(btn('📌', c.pinned ? 'Lösen' : 'Anheften (wird gespeichert)', () => pim.clipPin(c.id), c.pinned));
+  li.append(btn('×', 'Löschen', () => pim.clipDelete(c.id)));
+  li.addEventListener('click', () => { pim.clipCopy(c.id); flash('finished', 900); });
+  return li;
+}
 function renderClips() {
   const list = $('clipList'); list.replaceChildren();
-  state.clips.forEach((c, i) => {
-    const li = el('li', 'item clickable clip'); li.title = 'Klicken zum Kopieren';
-    const g = el('div', 'grow'); g.append(el('div', 'text', c.text.slice(0, 400)), el('div', 'sub', ago(c.at) + (i === 0 ? ' · aktuell' : '')));
-    const x = el('button', 'x', '×'); x.setAttribute('aria-label', 'Löschen');
-    x.addEventListener('click', e => { e.stopPropagation(); pim.clipDelete(i); });
-    li.addEventListener('click', () => { pim.clipCopy(i); flash('finished', 900); });
-    li.append(g, x); list.append(li);
-  });
+  const pinned = state.clips.filter(c => c.pinned), recent = state.clips.filter(c => !c.pinned);
+  if (pinned.length) { list.append(el('li', 'group', 'Angeheftet')); pinned.forEach(c => list.append(clipItem(c))); if (recent.length) list.append(el('li', 'group', 'Verlauf')); }
+  recent.forEach(c => list.append(clipItem(c)));
   $('clipEmpty').hidden = state.clips.length > 0;
-  $('clipList').hidden = state.clips.length === 0;
-  $('clipCount').textContent = state.clips.length === 1 ? '1 Eintrag' : `${state.clips.length} Einträge`;
+  list.hidden = state.clips.length === 0;
+  $('clipCount').textContent = recent.length === 1 ? '1 Eintrag' : `${recent.length} Einträge`;
 }
 pim.onClips(({ clips, fresh }) => { state.clips = clips; renderClips(); if (fresh) { touch(); flash('surprised', 1200); } });
 $('clipClear').addEventListener('click', () => pim.clipClear());
+
+/* ---------- volume ---------- */
+let volDragging = false;
+function renderSys() {
+  const v = state.sys;
+  $('volume').hidden = !v;
+  if (!v) return;
+  if (!volDragging) $('vRange').value = Math.round(v.vol * 100);
+  $('vOut').textContent = v.muted ? 'aus' : Math.round(v.vol * 100);
+  $('vMute').textContent = v.muted || v.vol === 0 ? '🔇' : v.vol < 0.4 ? '🔉' : '🔊';
+}
+function setVolume(v) {
+  v = Math.max(0, Math.min(1, v));
+  if (state.sys.muted) pim.mute(false); // moving the slider unmutes, like the Windows flyout
+  state.sys = { ...state.sys, vol: v, muted: false };
+  pim.volume(v);
+  renderSys();
+  note(`Lautstärke ${Math.round(v * 100)} %`);
+}
+$('vRange').addEventListener('pointerdown', () => { volDragging = true; });
+window.addEventListener('pointerup', () => { volDragging = false; });
+$('vRange').addEventListener('input', e => setVolume(e.target.value / 100));
+$('vMute').addEventListener('click', () => { if (state.sys) { pim.mute(!state.sys.muted); state.sys = { ...state.sys, muted: !state.sys.muted }; renderSys(); } });
+// mouse wheel over the pill or the header changes the volume; inside open panels it keeps scrolling lists
+window.addEventListener('wheel', e => {
+  if (!state.sys || (open && !e.target.closest('.bar'))) return;
+  e.preventDefault();
+  setVolume(state.sys.vol + (e.deltaY < 0 ? 0.02 : -0.02));
+}, { passive: false });
+pim.onSys(v => { state.sys = v; renderSys(); });
+
+/* ---------- battery ---------- */
+const LOW_PC = 0.2, LOW_BT = 15;
+function batItem(name, pct, sub) {
+  const li = el('li', 'item bat');
+  const g = el('div', 'grow'); g.append(el('div', 'name', name));
+  if (sub) g.append(el('div', 'sub', sub));
+  if (pct != null) {
+    const t = el('div', 'bar-track'), f = el('div', 'bar-fill ' + (pct < 20 ? 'low' : pct < 40 ? 'mid' : 'good'));
+    f.style.width = pct + '%'; t.append(f); g.append(t);
+  }
+  li.append(g);
+  if (pct != null) li.append(el('span', 'pct', `${pct} %`));
+  return li;
+}
+function renderBattery() {
+  const list = $('batList'); list.replaceChildren();
+  const b = state.pc;
+  // desktops report "charging, 100 %, chargingTime 0" because they have no battery
+  if (b && !(b.charging && b.level === 1 && b.chargingTime === 0)) {
+    const pct = Math.round(b.level * 100);
+    const time = b.charging
+      ? (Number.isFinite(b.chargingTime) && b.chargingTime > 0 ? `voll in ${fmtDur(b.chargingTime)}` : 'lädt')
+      : (Number.isFinite(b.dischargingTime) ? `noch ${fmtDur(b.dischargingTime)}` : 'Akkubetrieb');
+    list.append(batItem('Dieser PC', pct, (b.charging ? '⚡ ' : '') + time));
+  }
+  for (const d of state.bt) list.append(batItem(d.name, d.level, 'Bluetooth'));
+  $('batEmpty').hidden = list.children.length > 0;
+  list.hidden = list.children.length === 0;
+}
+const fmtDur = s => { const m = Math.round(s / 60); return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`; };
+function lowBattery() {
+  const b = state.pc;
+  if (b && !b.charging && b.level < LOW_PC) return { name: 'Akku', level: Math.round(b.level * 100) };
+  const d = state.bt.find(x => x.level < LOW_BT);
+  return d ? { name: d.name, level: d.level } : null;
+}
+if (navigator.getBattery) navigator.getBattery().then(b => {
+  state.pc = b;
+  for (const ev of ['levelchange', 'chargingchange', 'chargingtimechange', 'dischargingtimechange']) b.addEventListener(ev, renderBattery);
+  renderBattery();
+}).catch(() => {});
+pim.onBt(list => { state.bt = list; renderBattery(); });
+
+/* ---------- look: accessory, color, game mode ---------- */
+const ACC_NAMES = { beanie: 'Mütze', 'santa hat': 'Weihnachtsmütze', 'party hat': 'Partyhut', crown: 'Krone', 'witch hat': 'Hexenhut', sunglasses: 'Sonnenbrille', glasses: 'Brille', scarf: 'Schal', pumpkin: 'Kürbis', bow: 'Schleife' };
+const COLORS = [null, '#9cc0ff', '#c1b0ff', '#a6e5cc', '#ffcf8a', '#ff9ba6', '#8fe2ee'];
+function seasonalAcc(d = new Date()) {
+  const m = d.getMonth() + 1, day = d.getDate();
+  if ((m === 12 && day === 31) || (m === 1 && day === 1)) return 'party hat';
+  if (m === 12) return 'santa hat';
+  if (m === 10 && day >= 24) return 'witch hat';
+  if (m === 1 || m === 2) return 'beanie';
+  return null;
+}
+const currentAcc = () => (state.prefs.acc === 'auto' ? seasonalAcc() : ACCS.includes(state.prefs.acc) ? state.prefs.acc : null);
+function renderLook() {
+  const sel = $('pAcc'); sel.replaceChildren();
+  const opt = (v, t) => { const o = el('option', null, t); o.value = v; o.selected = state.prefs.acc === v; sel.append(o); };
+  opt('auto', 'Automatisch nach Jahreszeit'); opt('none', 'Keins');
+  ACCS.forEach(a => opt(a, ACC_NAMES[a] || a));
+  const sw = $('pColors'); sw.replaceChildren();
+  COLORS.forEach(c => {
+    const b = el('button', 'swatch'); b.style.background = c || STATES.idle.tint;
+    b.title = c ? c : 'Standard'; b.setAttribute('aria-label', c ? `Farbe ${c}` : 'Standardfarbe');
+    b.setAttribute('aria-pressed', state.prefs.color === c);
+    b.addEventListener('click', () => savePrefs({ color: c }));
+    sw.append(b);
+  });
+  const pick = el('input'); pick.type = 'color'; pick.title = 'Eigene Farbe'; pick.value = state.prefs.color || '#eef0f4';
+  pick.addEventListener('change', () => savePrefs({ color: pick.value }));
+  sw.append(pick);
+  $('pGame').checked = state.prefs.gameMode;
+}
+async function savePrefs(p) { state.prefs = await pim.setPrefs(p); renderLook(); }
+$('pAcc').addEventListener('change', e => savePrefs({ acc: e.target.value }));
+$('pGame').addEventListener('change', e => savePrefs({ gameMode: e.target.checked }));
 
 /* ---------- steam ---------- */
 function renderSteam() {
@@ -187,10 +302,12 @@ $('stForm').addEventListener('submit', async e => {
 
 /* ---------- mascot ---------- */
 function flash(name, ms) { state.flash = { name, until: Date.now() + ms }; }
+function note(text, ms = 1200) { state.note = { text, until: Date.now() + ms }; }
 function mascotState() {
   const now = Date.now();
   if ([...state.uploads.values()].some(u => u.status === 'running')) return 'upload';
   if (state.flash && state.flash.until > now) return state.flash.name;
+  if (lowBattery()) return 'rate limit';
   if (state.steam.length) return 'working';
   if (state.media && state.media.playing) return 'dancing';
   if (now - state.lastActivity > 5 * 60 * 1000) return 'sleeping';
@@ -199,6 +316,9 @@ function mascotState() {
 function statusLine() {
   const up = [...state.uploads.values()].find(u => u.status === 'running');
   if (up) return `↑ ${up.name} ${up.total ? Math.floor((up.sent / up.total) * 100) + ' %' : ''}`;
+  if (state.note && state.note.until > Date.now()) return state.note.text;
+  const low = lowBattery();
+  if (low) return `🪫 ${low.name} ${low.level} %`;
   if (state.steam.length) { const d = state.steam[0]; return `⬇ ${d.name} ${Math.floor((d.done / d.total) * 100)} %`; }
   const m = state.media;
   if (m && m.active && m.title) return `${m.title}${m.artist ? ' – ' + m.artist : ''}`;
@@ -217,14 +337,17 @@ const t0 = performance.now();
 let lastUi = 0;
 function loop(now) {
   const t = reduced ? 1.3 : (now - t0) / 1000;
-  const st = STATES[mascotState()];
+  const name = mascotState();
+  let st = STATES[name];
+  if (name === 'idle' && state.prefs.color) st = { ...st, rgb: hex(state.prefs.color) };
+  const acc = currentAcc();
   r.tint = r.tint ? mix(r.tint, st.rgb, 0.08) : st.rgb.slice();
   r.morph = lerp(r.morph, st.morph || 0, 0.1);
   r.look[0] = lerp(r.look[0], state.look[0], 0.1); r.look[1] = lerp(r.look[1], state.look[1], 0.1);
   ctx.setTransform(r.dpr, 0, 0, r.dpr, 0, 0);
   ctx.clearRect(0, 0, r.w, r.h);
-  const R = Math.min(r.w / 2.7, r.h / 2.3);
-  if (R > 0) drawPim(ctx, { cx: r.w / 2, cy: r.h * 0.5, R, t, st: { ...st, fx: null }, acc: null, n: 2.7, morph: r.morph, look: r.look, tint: r.tint, seed: 0.8, glow: 0 });
+  const R = Math.min(r.w / 2.7, r.h / (acc ? 3.1 : 2.3)); // hats need headroom
+  if (R > 0) drawPim(ctx, { cx: r.w / 2, cy: r.h * (acc ? 0.6 : 0.5), R, t, st: { ...st, fx: null }, acc, n: 2.7, morph: r.morph, look: r.look, tint: r.tint, seed: 0.8, glow: 0 });
 
   if (now - lastUi > 250) { // text and progress bars do not need 60 fps
     lastUi = now;
@@ -240,6 +363,9 @@ function loop(now) {
 setTab('music');
 fillForm();
 pim.targets().then(t => { targets = t; renderTargets(); });
-pim.snapshot().then(s => { state.media = s.media; state.steam = s.steam || []; state.clips = s.clips || []; renderMedia(); renderSteam(); renderClips(); });
+pim.snapshot().then(s => {
+  Object.assign(state, { media: s.media, steam: s.steam || [], clips: s.clips || [], sys: s.sys, bt: s.bt || [], prefs: s.prefs || state.prefs });
+  renderMedia(); renderSteam(); renderClips(); renderSys(); renderBattery(); renderLook();
+});
 setInterval(renderClips, 60000); // refresh "vor x min"
 requestAnimationFrame(loop);

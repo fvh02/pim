@@ -6,6 +6,7 @@ const path = require('path');
 const http = require('http');
 const steam = require('../lib/steam');
 const upload = require('../lib/upload');
+const battery = require('../lib/battery');
 
 (async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pim-test-'));
@@ -67,6 +68,16 @@ const upload = require('../lib/upload');
   assert.strictEqual(stored.get('/dav/foto%20(1).jpg').length, 300000);
   assert.strictEqual(stored.get('/dav/foto.jpg').toString(), 'alt');
   server.close();
+
+  // --- Bluetooth battery rows: merge device nodes per name, drop disconnected and junk
+  assert.deepStrictEqual(battery.parseDevices(JSON.stringify([
+    { name: 'AirPods Pro', level: 80, connected: true },
+    { name: 'AirPods Pro', level: 85, connected: null },
+    { name: 'Alter Lautsprecher', level: 40, connected: false },
+    { name: '', level: 50 }, { name: 'Kaputt', level: 255 },
+  ])), [{ name: 'AirPods Pro', level: 85 }]);
+  assert.deepStrictEqual(battery.parseDevices('{"name":"Jabra","level":12,"connected":true}'), [{ name: 'Jabra', level: 12 }]);
+  assert.deepStrictEqual(battery.parseDevices(''), []);
 
   fs.rmSync(tmp, { recursive: true, force: true });
   console.log('alle Tests bestanden');
