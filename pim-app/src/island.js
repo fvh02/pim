@@ -78,13 +78,13 @@ function restState(now) {
 // w: window width per menu; h: fixed height, otherwise measured from the content
 const MENUS = [
   { id: 'music', name: 'Musik', icon: 'music', w: 380 },
-  { id: 'clips', name: 'Zwischenablage', icon: 'clip', w: 640, h: 360 },
+  { id: 'clips', name: 'Zwischenablage', icon: 'clip', w: 640, h: 400 },
   { id: 'steam', name: 'Steam', icon: 'pad', w: 480 },
   { id: 'storage', name: 'Speicher', icon: 'drive', w: 420 },
   { id: 'battery', name: 'Akku', icon: 'battery', w: 320 },
   { id: 'look', name: 'Pim', icon: 'face', w: 320 },
 ];
-const PILL = { w: 340, h: 56 }, DROP = { w: 340, h: 126 }, HEADER = 64;
+const PILL = { w: 420, h: 84 }, DROP = { w: 420, h: 160 }, HEADER = 92;
 let open = false, menu = 0, closeTimer = null, dropping = false;
 
 MENUS.forEach((m, i) => {
@@ -105,10 +105,10 @@ function setMenu(i) {
 // leave the cursor outside the window and close everything. It shrinks back to the pill once closed.
 let box = { ...PILL }, shrinkTimer = null;
 function menuSize() {
-  const m = MENUS[menu];
-  $('body').style.width = `${m.w}px`; // measure at the target width, not the current one
+  const m = MENUS[menu], w = Math.max(m.w, PILL.w); // never narrower than the closed pill
+  $('body').style.width = `${w}px`; // measure at the target width, not the current one
   const sec = document.querySelector('section.active');
-  return { w: m.w, h: m.h || Math.min(440, HEADER + sec.scrollHeight + 18) };
+  return { w, h: m.h || Math.min(440, HEADER + sec.scrollHeight + 18) };
 }
 function fit() {
   clearTimeout(shrinkTimer);
@@ -290,7 +290,16 @@ function renderSteam() {
   $('steamEmpty').hidden = state.steam.length > 0;
   list.hidden = !state.steam.length;
 }
+// A newly started download over 2 GB: Pim works for 10 s, then goes back to idle (no endless animation).
+// Downloads stay remembered for a minute, so one missed poll (manifest mid-write) does not trigger it again.
+const BIG_DOWNLOAD = 2e9, seenDownloads = new Map(); // appid -> last seen
 pim.onSteam(list => {
+  const now = Date.now();
+  for (const d of list) {
+    if (!seenDownloads.has(d.appid) && d.total > BIG_DOWNLOAD) flash('working', 10000);
+    seenDownloads.set(d.appid, now);
+  }
+  for (const [id, t] of seenDownloads) if (now - t > 60000) seenDownloads.delete(id);
   const changed = list.length !== state.steam.length;
   state.steam = list; renderSteam();
   if (changed && MENUS[menu].id === 'steam') fit();
@@ -466,7 +475,6 @@ function mascotState() {
   if (state.flash && state.flash.until > now) return state.flash.name;
   if (updatePending()) return 'finished'; // stays until the update is installed
   if (lowBattery()) return 'rate limit';
-  if (state.steam.length) return 'working';
   if (state.media && state.media.playing) return 'dancing';
   return restState(now); // idle, or the yawn / sleep / wake-up sequence
 }

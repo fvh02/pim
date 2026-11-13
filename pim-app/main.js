@@ -13,7 +13,7 @@ const upload = require('./lib/upload');
 if (!app.requestSingleInstanceLock()) app.quit();
 app.setAppUserModelId('de.pim.island');
 
-const PILL = { w: 340, h: 56 };
+const PILL = { w: 420, h: 84 };
 let win = null, tray = null;
 
 /* ---------- settings (userData/settings.json) ---------- */
