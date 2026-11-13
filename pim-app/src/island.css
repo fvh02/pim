@@ -8,14 +8,14 @@
   --accent: #6f9dff;
   --ok: #25d08a;
   --err: #ff5d6c;
-  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
-  --mono: "Cascadia Mono", Consolas, ui-monospace, monospace;
+  --font: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif; /* Windows 11 system font */
+  --mono: var(--font); /* numbers use tabular digits instead of a monospace font */
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
-body { font: 13px/1.4 var(--font); color: var(--fg); user-select: none; text-shadow: 0 1px 2px rgba(0, 0, 0, .55); } /* keeps text readable on light wallpapers behind the glass */
+body { font: 13px/1.4 var(--font); font-variant-numeric: tabular-nums; color: var(--fg); user-select: none; text-shadow: 0 1px 2px rgba(0, 0, 0, .55); } /* keeps text readable on light wallpapers behind the glass */
 button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
