@@ -55,8 +55,24 @@ document.addEventListener('mouseover', e => {
   m.addEventListener('mouseleave', () => m.classList.remove('run'), { once: true });
 });
 
-const state = { media: null, steam: [], clips: [], uploads: new Map(), flash: null, lastActivity: Date.now(), look: [0, 0.15], sys: null, bt: [], pc: null, prefs: { acc: 'auto', color: null, gameMode: true }, note: null, update: null, hover: false };
-const touch = () => { state.lastActivity = Date.now(); };
+const state = { media: null, steam: [], clips: [], uploads: new Map(), flash: null, look: [0, 0.15], sys: null, bt: [], pc: null, prefs: { acc: 'auto', color: null, gameMode: true }, note: null, update: null, hover: false };
+/* Sleep: 5 min without mouse movement -> yawn -> sleep. Moving the mouse again -> surprised -> wave -> idle.
+   Copying something counts as activity too (keyboard users). */
+const SLEEP_AFTER = 5 * 60 * 1000, YAWN_MS = 3500, SURPRISE_MS = 1100, WAVE_MS = 2400;
+const rest = { phase: 'awake', since: 0, lastMove: Date.now() };
+function touch() {
+  rest.lastMove = Date.now();
+  if (rest.phase === 'yawn' || rest.phase === 'asleep') { rest.phase = 'waking'; rest.since = Date.now(); }
+}
+function restState(now) {
+  if (rest.phase === 'awake' && now - rest.lastMove > SLEEP_AFTER) { rest.phase = 'yawn'; rest.since = now; }
+  if (rest.phase === 'yawn' && now - rest.since > YAWN_MS) rest.phase = 'asleep';
+  if (rest.phase === 'waking' && now - rest.since > SURPRISE_MS + WAVE_MS) rest.phase = 'awake';
+  if (rest.phase === 'yawn') return 'yawn';
+  if (rest.phase === 'asleep') return 'sleeping';
+  if (rest.phase === 'waking') return now - rest.since < SURPRISE_MS ? 'surprised' : 'greeting';
+  return 'idle';
+}
 
 /* ---------- menus, size, open / close ---------- */
 // w: window width per menu; h: fixed height, otherwise measured from the content
@@ -113,6 +129,7 @@ document.body.addEventListener('mouseleave', () => {
 window.addEventListener('keydown', e => { if (e.key === 'Escape') { document.activeElement.blur(); setOpen(false); } });
 // Eyes follow the mouse anywhere on screen; main sends the cursor in window coordinates.
 pim.onCursor(p => {
+  touch(); // main only sends when the cursor moved
   const r = $('pim').getBoundingClientRect();
   state.look = [Math.max(-1, Math.min(1, (p.x - r.left - r.width / 2) / 420)), Math.max(-1, Math.min(1, (p.y - r.top - r.height / 2) / 260))];
 });
@@ -204,7 +221,6 @@ function renderMedia() {
 }
 pim.onMedia(m => {
   const prev = state.media;
-  if (!prev || prev.key !== m.key || prev.playing !== m.playing) touch();
   state.media = m; renderMedia();
 });
 
@@ -258,7 +274,6 @@ function renderSteam() {
 }
 pim.onSteam(list => {
   const changed = list.length !== state.steam.length;
-  if (changed) touch();
   state.steam = list; renderSteam();
   if (changed && MENUS[menu].id === 'steam') fit();
 });
@@ -268,8 +283,8 @@ $('steamOpen').addEventListener('click', () => pim.steamOpen());
 pim.onUpload(u => {
   const prev = state.uploads.get(u.id) || {};
   state.uploads.set(u.id, { ...prev, ...u });
-  if (u.status === 'done') { touch(); flash('finished', 2500); note(`✓ ${u.name} → ${u.target}`, 3500); state.uploads.delete(u.id); }
-  if (u.status === 'error') { touch(); flash('error', 3000); note(`✕ ${u.name}: ${u.error}`, 6000); state.uploads.delete(u.id); }
+  if (u.status === 'done') { flash('finished', 2500); note(`✓ ${u.name} → ${u.target}`, 3500); state.uploads.delete(u.id); }
+  if (u.status === 'error') { flash('error', 3000); note(`✕ ${u.name}: ${u.error}`, 6000); state.uploads.delete(u.id); }
 });
 
 /* ---------- battery ---------- */
@@ -366,7 +381,9 @@ function renderUpdate() {
 }
 $('uBtn').addEventListener('click', () => (['ready', 'portable'].includes(state.update.status) ? pim.updateInstall() : pim.updateCheck()));
 pim.onUpdate(u => {
-  if (u.status === 'ready' && (!state.update || state.update.status !== 'ready')) { touch(); flash('proud', 3000); }
+  // a new version was found and downloaded: Pim celebrates briefly
+  const was = state.update && state.update.status;
+  if ((u.status === 'ready' || u.status === 'portable') && was !== u.status) flash('finished', 4000);
   state.update = u; renderUpdate();
 });
 
@@ -431,8 +448,7 @@ function mascotState() {
   if (lowBattery()) return 'rate limit';
   if (state.steam.length) return 'working';
   if (state.media && state.media.playing) return 'dancing';
-  if (now - state.lastActivity > 5 * 60 * 1000) return 'sleeping';
-  return 'idle';
+  return restState(now); // idle, or the yawn / sleep / wake-up sequence
 }
 function statusLine() {
   const up = [...state.uploads.values()].find(u => u.status === 'running');
@@ -448,7 +464,7 @@ function statusLine() {
   return '';
 }
 
-const FOLLOW = new Set(['idle', 'surprised', 'finished', 'proud', 'error', 'upload']);
+const FOLLOW = new Set(['idle', 'surprised', 'greeting', 'finished', 'proud', 'error', 'upload']);
 const canvas = $('pim'), ctx = canvas.getContext('2d');
 const r = { tint: null, morph: 0, look: [0, 0], w: 0, h: 0, dpr: 1 };
 new ResizeObserver(() => {
@@ -491,6 +507,7 @@ setMenu(0);
 fillForm();
 pim.targets().then(t => { targets = t; renderTargets(); });
 pim.snapshot().then(s => {
+  if (s.justUpdated) flash('dancing', 10000); // first start after an update installed
   Object.assign(state, { update: s.update, media: s.media, steam: s.steam || [], clips: s.clips || [], sys: s.sys, bt: s.bt || [], prefs: s.prefs || state.prefs });
   renderMedia(); renderSteam(); renderClips(); renderBattery(); renderLook(); renderUpdate();
 });

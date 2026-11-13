@@ -28,7 +28,7 @@ Alle Knöpfe sind Symbole. Beim Darüberfahren zeigt ein Tooltip, was sie tun.
 
 **Spielmodus:** Läuft ein Spiel, ein Video oder eine Präsentation im Vollbild, blendet sich Pim aus. Danach erscheint es wieder.
 
-Im Grundzustand ist Pim weiß und atmet und blinzelt. Seine Augen folgen dann dem Mauszeiger auf dem ganzen Bildschirm, ebenso bei kurzen Reaktionen wie „kopiert“, „Upload fertig“ oder beim Drag & Drop. Ansonsten reagiert Pim auf das, was passiert. Bei Musik tanzt es, bei Steam-Downloads arbeitet es, beim Upload wird es zur Kiste, bei leerem Akku sackt es zusammen. Nach 5 Minuten Ruhe schläft es ein.
+Im Grundzustand ist Pim weiß und atmet und blinzelt. Seine Augen folgen dann dem Mauszeiger auf dem ganzen Bildschirm, ebenso bei kurzen Reaktionen wie „kopiert“, „Upload fertig“ oder beim Drag & Drop. Ansonsten reagiert Pim auf das, was passiert. Bei Musik tanzt es, bei Steam-Downloads arbeitet es, beim Upload wird es zur Kiste, bei leerem Akku sackt es zusammen. Bewegt sich die Maus 5 Minuten nicht, gähnt Pim und schläft ein. Bewegt sie sich wieder, wacht es überrascht auf, winkt und ist wieder bereit. Findet Pim ein Update, freut es sich kurz. Nach der Installation tanzt es 10 Sekunden lang.
 
 ### Speicherorte
 

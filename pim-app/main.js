@@ -36,6 +36,11 @@ const publicTargets = () => ({
 });
 const passOf = t => (t && t.passEnc ? safeStorage.decryptString(Buffer.from(t.passEnc, 'base64')) : '');
 
+// Electron creates "Local State" in the profile on the first run; if it is older than this start, Pim ran before.
+function ranBefore() {
+  try { return Date.now() - fs.statSync(path.join(app.getPath('userData'), 'Local State')).birthtimeMs > 60000; } catch { return false; }
+}
+
 /* ---------- window ---------- */
 // The renderer asks for the size of the current menu; the window grows and shrinks toward it in a few frames,
 // always centered on the top edge of the primary screen.
@@ -228,7 +233,7 @@ function ipc() {
     return next;
   });
 
-  ipcMain.handle('snapshot', () => ({ ...snap, update: upd.get(), clips: clips.map(({ img, ...c }) => c), prefs: settings.prefs }));
+  ipcMain.handle('snapshot', () => { const r = { ...snap, justUpdated, update: upd.get(), clips: clips.map(({ img, ...c }) => c), prefs: settings.prefs  }; justUpdated = false; return r; });
   ipcMain.handle('targets:list', () => publicTargets());
   ipcMain.handle('targets:presets', () => upload.presets());
   ipcMain.handle('targets:save', (_e, t, pass) => {
@@ -271,11 +276,15 @@ function ipc() {
 }
 
 let sys = { send() {}, stop() {} };
+let justUpdated = false;
 let upd = { check() {}, install() {}, get: () => ({ status: 'idle', version: app.getVersion() }) };
 const snap = { media: null, steam: [], sys: null, bt: [] }; // last values, for a renderer that (re)loads late
 let bridgeSeen = 0, clipSeq = null;
 app.whenReady().then(() => {
   loadSettings();
+  // remember the installed version, so the first start after an update can celebrate
+  justUpdated = settings.lastVersion ? settings.lastVersion !== app.getVersion() : ranBefore(); // 0.3.0 did not store lastVersion
+  if (settings.lastVersion !== app.getVersion()) { settings.lastVersion = app.getVersion(); saveSettings(); }
   loadPins();
   createWindow();
   createTray();
