@@ -47,7 +47,7 @@ function ranBefore() {
 // Size: following Windows scaling, 1 CSS px = 1 Windows-scaled px (Electron default). Otherwise the slider sets the
 // size in real screen pixels, so the zoom divides out the Windows factor.
 let cur = { ...PILL };
-const SHADOW = 18; // transparent margin left, right and below the island for its drop shadow (CSS px)
+const SHADOW = 28; // transparent margin left, right and below the island; larger than the CSS box-shadow reach, or it gets cut off
 const zoom = () => (settings.prefs.followWindows !== false ? 1 : settings.prefs.scale / screen.getPrimaryDisplay().scaleFactor);
 function place() {
   if (!win || win.isDestroyed()) return;
