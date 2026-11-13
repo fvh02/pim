@@ -46,12 +46,13 @@ function ranBefore() {
 // Size: following Windows scaling, 1 CSS px = 1 Windows-scaled px (Electron default). Otherwise the slider sets the
 // size in real screen pixels, so the zoom divides out the Windows factor.
 let cur = { ...PILL };
+const SHADOW = 18; // transparent margin left, right and below the island for its drop shadow (CSS px)
 const zoom = () => (settings.prefs.followWindows !== false ? 1 : settings.prefs.scale / screen.getPrimaryDisplay().scaleFactor);
 function place() {
   if (!win || win.isDestroyed()) return;
   const d = screen.getPrimaryDisplay().bounds, z = zoom();
   if (Math.abs(win.webContents.getZoomFactor() - z) > 0.001) win.webContents.setZoomFactor(z);
-  const w = Math.round(cur.w * z), h = Math.round(cur.h * z);
+  const w = Math.round((cur.w + 2 * SHADOW) * z), h = Math.round((cur.h + SHADOW) * z);
   win.setBounds({ x: Math.round(d.x + (d.width - w) / 2), y: d.y, width: w, height: h });
 }
 function resizeTo(w, h) {

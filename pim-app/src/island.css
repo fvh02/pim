@@ -1,9 +1,10 @@
 :root {
-  --island: #000;
+  --glass-top: rgba(46, 50, 62, .64);
+  --glass-bottom: rgba(12, 14, 20, .80);
   --fg: #f4f6fa;
   --muted: #8d96a8;
-  --line: #1f2430;
-  --tile: #11141b;
+  --line: rgba(255, 255, 255, .09);
+  --tile: rgba(255, 255, 255, .055);
   --accent: #6f9dff;
   --ok: #25d08a;
   --err: #ff5d6c;
@@ -20,12 +21,27 @@ button { cursor: pointer; }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .muted { color: var(--muted); }
 
-/* island: flush with the top edge, rounded only at the bottom like a notch */
-.island { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 360px; height: 64px; background: var(--island); border-radius: 0 0 22px 22px; display: flex; flex-direction: column; overflow: hidden; transition: width .2s cubic-bezier(.3, 1.2, .5, 1), height .2s cubic-bezier(.3, 1.2, .5, 1), border-radius .2s; }
+/* island: flush with the top edge, rounded only at the bottom like a notch; dark "liquid glass":
+   translucent tint, light rim, specular sheen and a soft shadow. The window has a SHADOW margin for the shadow.
+   shortcut: no real blur of the desktop behind (a transparent Electron window cannot sample it); Windows acrylic would need window shaping. */
+.island {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 360px; height: 64px;
+  background: linear-gradient(180deg, var(--glass-top), var(--glass-bottom));
+  border: 1px solid rgba(255, 255, 255, .16); border-top: 0; border-radius: 0 0 22px 22px;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .10), inset 0 0 24px rgba(255, 255, 255, .045), 0 8px 22px rgba(0, 0, 0, .45), 0 2px 6px rgba(0, 0, 0, .35);
+  backdrop-filter: blur(24px) saturate(170%);
+  display: flex; flex-direction: column; overflow: hidden;
+  transition: width .2s cubic-bezier(.3, 1.2, .5, 1), height .2s cubic-bezier(.3, 1.2, .5, 1), border-radius .2s;
+}
+.island::before { /* specular sheen across the upper half */
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 60%; pointer-events: none; border-radius: inherit;
+  background: radial-gradient(120% 90% at 30% -20%, rgba(255, 255, 255, .16), rgba(255, 255, 255, 0) 60%);
+}
+.island > * { position: relative; }
 body.open .island { border-radius: 0 0 24px 24px; }
 
 .bar { display: flex; align-items: center; gap: 8px; height: 64px; padding: 0 18px 0 6px; flex: none; }
-#pim { width: 90px; height: 64px; flex: none; }
+#pim { width: 90px; height: 64px; flex: none; filter: drop-shadow(0 3px 5px rgba(0, 0, 0, .55)) drop-shadow(0 0 10px rgba(0, 0, 0, .35)); } /* shadow behind Pim so it reads on any glass */
 .status { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .eq { display: flex; gap: 2px; align-items: flex-end; height: 14px; }
 .eq i { width: 3px; background: var(--ok); border-radius: 2px; animation: eq 0.9s ease-in-out infinite; }
@@ -39,7 +55,7 @@ body.open .menu-name { display: block; flex: 1; font-weight: 700; font-size: 13.
 body.open .menus { display: flex; gap: 2px; }
 .menus button { background: none; border: 0; border-radius: 50%; width: 24px; height: 24px; display: grid; place-items: center; color: #586174; padding: 0; }
 .menus button:hover { color: var(--fg); }
-.menus button[aria-current="true"] { color: var(--fg); background: #1c2130; }
+.menus button[aria-current="true"] { color: var(--fg); background: rgba(255, 255, 255, .12); }
 .menus svg { width: 14px; height: 14px; }
 
 .body { display: none; padding: 4px 14px 14px; }
@@ -54,19 +70,19 @@ section[data-panel="clips"].active { height: 300px; }
 .list { list-style: none; margin: 0; padding: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; max-height: 300px; }
 section[data-panel="clips"] .list { flex: 1; min-height: 0; max-height: none; }
 .list.short { max-height: 104px; }
-.list::-webkit-scrollbar { width: 6px; } .list::-webkit-scrollbar-thumb { background: #2a3040; border-radius: 3px; }
+.list::-webkit-scrollbar { width: 6px; } .list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .18); border-radius: 3px; }
 .item { background: var(--tile); border: 1px solid var(--line); border-radius: 12px; padding: 7px 10px; display: flex; gap: 8px; align-items: center; }
 .item .grow { flex: 1; min-width: 0; }
 .item .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .item .sub { color: var(--muted); font: 11.5px var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .item.clickable { cursor: pointer; } .item.clickable:hover { border-color: #33405a; }
-.bar-track { height: 4px; border-radius: 2px; background: #232a38; overflow: hidden; }
+.bar-track { height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .1); overflow: hidden; }
 .bar-fill { height: 100%; background: var(--accent); width: 0; transition: width .4s; }
 .ok { color: var(--ok); } .err { color: var(--err); }
 
 /* icon buttons */
 .icon { background: none; border: 0; border-radius: 50%; width: 32px; height: 32px; display: grid; place-items: center; color: var(--fg); padding: 0; flex: none; }
-.icon:hover { background: #1c2130; }
+.icon:hover { background: rgba(255, 255, 255, .1); }
 .icon svg { width: 18px; height: 18px; display: block; }
 .icon.sm { width: 26px; height: 26px; color: var(--muted); }
 .icon.sm:hover, .icon.sm.on { color: var(--fg); }
@@ -81,11 +97,11 @@ section[data-panel="clips"] .list { flex: 1; min-height: 0; max-height: none; }
 
 /* music: small player */
 .player { display: flex; gap: 12px; align-items: center; }
-.cover { width: 72px; height: 72px; border-radius: 12px; background: #1a1f2b center / cover no-repeat; flex: none; }
+.cover { width: 72px; height: 72px; border-radius: 12px; background: rgba(255, 255, 255, .08) center / cover no-repeat; flex: none; }
 .meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .title { font-size: 14px; font-weight: 700; }
 .artist { color: #aeb6c5; font-size: 12px; }
-.track { height: 3px; border-radius: 2px; background: #232a38; overflow: hidden; margin: 6px 0 2px; }
+.track { height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .14); overflow: hidden; margin: 6px 0 2px; }
 .fill { height: 100%; width: 0; background: var(--fg); }
 .controls { display: flex; gap: 2px; justify-content: space-between; }
 .controls .icon { width: 30px; height: 30px; }
