@@ -1,0 +1,23 @@
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
+
+const on = ch => cb => ipcRenderer.on(ch, (_e, data) => cb(data));
+contextBridge.exposeInMainWorld('pim', {
+  expand: on => ipcRenderer.send('expand', on),
+  snapshot: () => ipcRenderer.invoke('snapshot'),
+  onMedia: on('media'), onSteam: on('steam'), onClips: on('clips'), onUpload: on('upload'),
+  media: cmd => ipcRenderer.send('media', cmd),
+  steamOpen: () => ipcRenderer.send('steam:open'),
+  clipCopy: i => ipcRenderer.send('clip:copy', i),
+  clipDelete: i => ipcRenderer.send('clip:delete', i),
+  clipClear: () => ipcRenderer.send('clip:clear'),
+  targets: () => ipcRenderer.invoke('targets:list'),
+  presets: () => ipcRenderer.invoke('targets:presets'),
+  saveTarget: (t, pass) => ipcRenderer.invoke('targets:save', t, pass),
+  deleteTarget: id => ipcRenderer.invoke('targets:delete', id),
+  setDefault: id => ipcRenderer.invoke('targets:default', id),
+  testTarget: (t, pass) => ipcRenderer.invoke('targets:test', t, pass),
+  pickFolder: () => ipcRenderer.invoke('pick:folder'),
+  pickFiles: () => ipcRenderer.invoke('pick:files'),
+  upload: (files, targetId) => ipcRenderer.send('upload', [...files].map(f => webUtils.getPathForFile(f)).filter(Boolean), targetId),
+  reveal: location => ipcRenderer.send('reveal', location),
+});

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'">
+<title>Pim</title>
+<link rel="stylesheet" href="island.css">
+</head>
+<body>
+<div class="island" id="island">
+  <header class="bar">
+    <canvas id="pim" aria-label="Pim"></canvas>
+    <div class="status"><span id="statusText"></span></div>
+    <div class="eq" id="eq" hidden><i></i><i></i><i></i></div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="music">Musik</button>
+      <button role="tab" data-tab="clips">Zwischenablage</button>
+      <button role="tab" data-tab="steam">Steam</button>
+      <button role="tab" data-tab="upload">Upload</button>
+      <button role="tab" data-tab="storage">Speicher</button>
+    </nav>
+  </header>
+
+  <main class="body">
+    <section data-panel="music">
+      <div class="empty" id="musicEmpty">Keine Wiedergabe aktiv. Starte Spotify, Apple Music, YouTube im Browser oder einen anderen Player.</div>
+      <div class="music" id="music" hidden>
+        <div class="cover" id="cover"></div>
+        <div class="meta">
+          <div class="title" id="mTitle"></div>
+          <div class="artist" id="mArtist"></div>
+          <div class="app mono" id="mApp"></div>
+          <div class="progress"><div class="track"><div class="fill" id="mFill"></div></div>
+            <div class="times mono"><span id="mPos">0:00</span><span id="mDur">0:00</span></div></div>
+          <div class="controls">
+            <button data-cmd="prev" aria-label="Zurück">⏮</button>
+            <button data-cmd="toggle" class="play" id="mPlay" aria-label="Wiedergabe/Pause">⏯</button>
+            <button data-cmd="next" aria-label="Weiter">⏭</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section data-panel="clips">
+      <div class="row-head"><span class="muted" id="clipCount"></span><button class="link" id="clipClear">Alle löschen</button></div>
+      <ul class="list" id="clipList"></ul>
+      <div class="empty" id="clipEmpty">Noch nichts kopiert. Kopierte Texte erscheinen hier und werden beim Beenden vergessen.</div>
+    </section>
+
+    <section data-panel="steam">
+      <div class="row-head"><span class="muted">Downloads</span><button class="link" id="steamOpen">Steam-Downloads öffnen</button></div>
+      <ul class="list" id="steamList"></ul>
+      <div class="empty" id="steamEmpty">Keine aktiven Steam-Downloads.</div>
+    </section>
+
+    <section data-panel="upload">
+      <div class="row-head"><label class="muted">Ziel <select id="upTarget"></select></label></div>
+      <button class="drop" id="drop">Dateien hierher ziehen oder klicken</button>
+      <ul class="list" id="upList"></ul>
+    </section>
+
+    <section data-panel="storage">
+      <div class="storage">
+        <div>
+          <div class="row-head"><span class="muted">Speicherorte</span><button class="link" id="stNew">+ Neu</button></div>
+          <ul class="list" id="stList"></ul>
+          <div class="empty" id="stEmpty">Noch kein Speicher. Wähle rechts eine Vorlage.</div>
+        </div>
+        <form id="stForm" autocomplete="off">
+          <label>Vorlage <select id="fPreset"></select></label>
+          <p class="hint" id="fHint"></p>
+          <label>Name <input id="fName" required></label>
+          <label>Typ <select id="fType"><option value="folder">Ordner / Netzlaufwerk (SMB)</option><option value="webdav">WebDAV</option></select></label>
+          <label data-for="folder">Pfad <span class="inline"><input id="fPath" placeholder="\\fritz.nas\FRITZ.NAS"><button type="button" id="fPick">…</button></span></label>
+          <label data-for="webdav">URL <input id="fUrl" placeholder="https://nas.local/remote.php/dav/files/ich/"></label>
+          <label data-for="webdav">Benutzer <input id="fUser"></label>
+          <label data-for="webdav">Passwort <input id="fPass" type="password" placeholder="unverändert lassen"></label>
+          <div class="actions"><button type="button" id="fTest">Testen</button><button type="submit" class="primary">Speichern</button></div>
+          <p class="msg" id="fMsg" role="status"></p>
+        </form>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="pim.js"></script>
+<script src="island.js"></script>
+</body>
+</html>
