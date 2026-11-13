@@ -55,7 +55,7 @@ document.addEventListener('mouseover', e => {
   m.addEventListener('mouseleave', () => m.classList.remove('run'), { once: true });
 });
 
-const state = { media: null, steam: [], clips: [], uploads: new Map(), flash: null, look: [0, 0.15], sys: null, bt: [], pc: null, prefs: { acc: 'auto', color: null, gameMode: true, updateNotify: true }, note: null, update: null, hover: false };
+const state = { media: null, steam: [], clips: [], uploads: new Map(), flash: null, look: [0, 0.15], sys: null, bt: [], pc: null, prefs: { acc: 'auto', color: null, gameMode: true, updateNotify: true, followWindows: true, scale: 1 }, note: null, update: null, hover: false };
 /* Sleep: 5 min without mouse movement -> yawn -> sleep. Moving the mouse again -> surprised -> wave -> idle.
    Copying something counts as activity too (keyboard users). */
 const SLEEP_AFTER = 5 * 60 * 1000, YAWN_MS = 3500, SURPRISE_MS = 1100, WAVE_MS = 2400;
@@ -78,13 +78,13 @@ function restState(now) {
 // w: window width per menu; h: fixed height, otherwise measured from the content
 const MENUS = [
   { id: 'music', name: 'Musik', icon: 'music', w: 380 },
-  { id: 'clips', name: 'Zwischenablage', icon: 'clip', w: 640, h: 400 },
+  { id: 'clips', name: 'Zwischenablage', icon: 'clip', w: 640, h: 380 },
   { id: 'steam', name: 'Steam', icon: 'pad', w: 480 },
   { id: 'storage', name: 'Speicher', icon: 'drive', w: 420 },
   { id: 'battery', name: 'Akku', icon: 'battery', w: 320 },
   { id: 'look', name: 'Pim', icon: 'face', w: 320 },
 ];
-const PILL = { w: 420, h: 84 }, DROP = { w: 420, h: 160 }, HEADER = 92;
+const PILL = { w: 360, h: 64 }, DROP = { w: 360, h: 136 }, HEADER = 72;
 let open = false, menu = 0, closeTimer = null, dropping = false;
 
 MENUS.forEach((m, i) => {
@@ -138,7 +138,7 @@ document.body.addEventListener('mouseenter', () => {
 document.body.addEventListener('mouseleave', () => {
   state.hover = false;
   clearTimeout(closeTimer);
-  if (document.activeElement && document.activeElement.matches('input, select')) return; // keep the panel while typing
+  if (document.activeElement && document.activeElement.matches('input:not([type]), input[type=password], select')) return; // keep the panel while typing
   closeTimer = setTimeout(() => setOpen(false), 450);
 });
 window.addEventListener('keydown', e => { if (e.key === 'Escape') { document.activeElement.blur(); setOpen(false); } });
@@ -206,7 +206,7 @@ window.addEventListener('drop', e => {
   pim.upload(Array.from(e.dataTransfer.files), null); // a FileList does not survive the context bridge, an array of Files does
 });
 function drawDropFrame(now) {
-  const b = dropCanvas.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+  const b = dropCanvas.getBoundingClientRect(), dpr = Math.min(4, devicePixelRatio || 1);
   const cw = Math.round(b.width * dpr), ch = Math.round(b.height * dpr);
   if (dropCanvas.width !== cw || dropCanvas.height !== ch) { dropCanvas.width = cw; dropCanvas.height = ch; } // the window grows while dragging
   dctx.setTransform(dpr, 0, 0, dpr, 0, 0); dctx.clearRect(0, 0, b.width, b.height);
@@ -383,11 +383,21 @@ function renderLook() {
   sw.append(pick);
   $('pGame').checked = state.prefs.gameMode;
   $('pNotify').checked = state.prefs.updateNotify !== false;
+  const follow = state.prefs.followWindows !== false;
+  $('pFollow').checked = follow;
+  $('pScale').disabled = follow; // greyed out and unusable while Windows decides the size
+  $('pScale').value = state.prefs.scale;
+  $('pScaleOut').textContent = follow ? '' : `${String(state.prefs.scale.toFixed(2)).replace('.', ',')}×`;
 }
 async function savePrefs(p) { state.prefs = await pim.setPrefs(p); renderLook(); }
 $('pAcc').addEventListener('change', e => savePrefs({ acc: e.target.value }));
 $('pGame').addEventListener('change', e => savePrefs({ gameMode: e.target.checked }));
 $('pNotify').addEventListener('change', e => savePrefs({ updateNotify: e.target.checked }));
+// Turning Windows scaling off starts the slider at the current Windows factor, so nothing jumps.
+$('pFollow').addEventListener('change', e => savePrefs(e.target.checked ? { followWindows: true } : { followWindows: false, scale: Math.min(2, Math.max(0.25, Math.round(devicePixelRatio * 20) / 20)) }));
+// live value while dragging; resize only on release (the slider would move away under the cursor)
+$('pScale').addEventListener('input', e => { $('pScaleOut').textContent = `${Number(e.target.value).toFixed(2).replace('.', ',')}×`; });
+$('pScale').addEventListener('change', e => savePrefs({ scale: Number(e.target.value) }));
 
 function renderUpdate() {
   const u = state.update;
@@ -495,7 +505,7 @@ const FOLLOW = new Set(['idle', 'surprised', 'greeting', 'finished', 'proud', 'e
 const canvas = $('pim'), ctx = canvas.getContext('2d');
 const r = { tint: null, morph: 0, look: [0, 0], w: 0, h: 0, dpr: 1 };
 new ResizeObserver(() => {
-  const b = canvas.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+  const b = canvas.getBoundingClientRect(), dpr = Math.min(4, devicePixelRatio || 1);
   r.w = b.width; r.h = b.height; r.dpr = dpr;
   canvas.width = Math.round(b.width * dpr); canvas.height = Math.round(b.height * dpr);
 }).observe(canvas);

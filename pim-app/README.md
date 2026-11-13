@@ -21,7 +21,9 @@ Pim ist eine Island am oberen Bildschirmrand von Windows, wie die Notch beim Mac
 | **Steam** | Laufende Steam-Downloads, eine Zeile pro Spiel: Titel, Balken, Größe, Tempo. Lange Titel enden mit „…“ und laufen beim Darüberfahren durch. |
 | **Speicher** | Speicherorte einrichten und den Standard für Uploads wählen. |
 | **Akku** | Laptop-Akku mit Restzeit sowie Bluetooth-Kopfhörer und -Headsets. Unter 20 % (Laptop) oder 15 % (Bluetooth) warnt die Pille. |
-| **Pim** | Accessoire (oder automatisch nach Jahreszeit), Farbe, Spielmodus, Update-Benachrichtigung, Updates. |
+| **Pim** | Accessoire (oder automatisch nach Jahreszeit), Farbe, Größe, Spielmodus, Update-Benachrichtigung, Updates. |
+
+**Größe:** Standardmäßig ist „Mit Windows-Skalierung“ angehakt. Pim ist dann so groß, wie es die Anzeigeskalierung von Windows vorgibt, und der Regler ist ausgegraut. Ohne Haken bestimmt der Regler die Größe der ganzen Insel (0,25× bis 2×), unabhängig von der Windows-Skalierung. Beim Abhaken startet der Regler bei der aktuellen Größe.
 
 Alle Knöpfe sind Symbole. Beim Darüberfahren zeigt ein Tooltip, was sie tun.
 

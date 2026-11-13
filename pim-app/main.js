@@ -13,12 +13,12 @@ const upload = require('./lib/upload');
 if (!app.requestSingleInstanceLock()) app.quit();
 app.setAppUserModelId('de.pim.island');
 
-const PILL = { w: 420, h: 84 };
+const PILL = { w: 360, h: 64 };
 let win = null, tray = null;
 
 /* ---------- settings (userData/settings.json) ---------- */
 const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
-let settings = { targets: [], defaultTarget: null, pins: [], prefs: { acc: 'auto', color: null, gameMode: true, updateNotify: true } };
+let settings = { targets: [], defaultTarget: null, pins: [], prefs: { acc: 'auto', color: null, gameMode: true, updateNotify: true, followWindows: true, scale: 1 } };
 function loadSettings() {
   try {
     const saved = JSON.parse(fs.readFileSync(settingsFile(), 'utf8'));
@@ -42,12 +42,17 @@ function ranBefore() {
 }
 
 /* ---------- window ---------- */
-// The renderer sets the window size (the island inside animates with CSS); always centered on the top edge.
+// The renderer sets the window size in CSS pixels (the island inside animates with CSS); always centered on the top edge.
+// Size: following Windows scaling, 1 CSS px = 1 Windows-scaled px (Electron default). Otherwise the slider sets the
+// size in real screen pixels, so the zoom divides out the Windows factor.
 let cur = { ...PILL };
+const zoom = () => (settings.prefs.followWindows !== false ? 1 : settings.prefs.scale / screen.getPrimaryDisplay().scaleFactor);
 function place() {
   if (!win || win.isDestroyed()) return;
-  const d = screen.getPrimaryDisplay().bounds;
-  win.setBounds({ x: Math.round(d.x + (d.width - cur.w) / 2), y: d.y, width: cur.w, height: cur.h });
+  const d = screen.getPrimaryDisplay().bounds, z = zoom();
+  if (Math.abs(win.webContents.getZoomFactor() - z) > 0.001) win.webContents.setZoomFactor(z);
+  const w = Math.round(cur.w * z), h = Math.round(cur.h * z);
+  win.setBounds({ x: Math.round(d.x + (d.width - w) / 2), y: d.y, width: w, height: h });
 }
 function resizeTo(w, h) {
   if (cur.w === w && cur.h === h) return;
@@ -65,6 +70,8 @@ function createWindow() {
   win.setAlwaysOnTop(true, 'screen-saver');
   win.setVisibleOnAllWorkspaces(true);
   win.loadFile(path.join(__dirname, 'src', 'island.html'));
+  win.webContents.setVisualZoomLevelLimits(1, 1); // no pinch zoom
+  win.webContents.on('did-finish-load', place); // zoom is reset on every load
   win.once('ready-to-show', () => { place(); applyVisibility(); });
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', e => e.preventDefault());
@@ -225,7 +232,9 @@ function ipc() {
     if (p && 'color' in p) next.color = str(p.color) && /^#[0-9a-f]{6}$/i.test(p.color) ? p.color : null;
     if (p && typeof p.gameMode === 'boolean') next.gameMode = p.gameMode;
     if (p && typeof p.updateNotify === 'boolean') next.updateNotify = p.updateNotify;
-    settings.prefs = next; saveSettings(); applyVisibility();
+    if (p && typeof p.followWindows === 'boolean') next.followWindows = p.followWindows;
+    if (p && Number.isFinite(p.scale)) next.scale = Math.round(Math.min(2, Math.max(0.25, p.scale)) * 100) / 100;
+    settings.prefs = next; saveSettings(); applyVisibility(); place();
     return next;
   });
 
@@ -300,7 +309,7 @@ app.whenReady().then(() => {
   setInterval(() => {
     if (!win || win.isDestroyed() || !win.isVisible()) return;
     const p = screen.getCursorScreenPoint(), b = win.getBounds();
-    const rel = { x: p.x - b.x, y: p.y - b.y }, key = rel.x + ',' + rel.y;
+    const z = zoom(), rel = { x: Math.round((p.x - b.x) / z), y: Math.round((p.y - b.y) / z) }, key = rel.x + ',' + rel.y; // CSS px
     if (key !== lastCursor) { lastCursor = key; send('cursor', rel); }
   }, 50);
   setInterval(() => { if (Date.now() - bridgeSeen > 3000) pollClipboard(); }, 700); // fallback without the bridge
