@@ -1,9 +1,15 @@
 name: Pim Windows build
 
+# Branch pushes build and test. A tag like v0.3.0 also publishes a GitHub Release,
+# which installed Pim apps pick up as an update.
 on:
   push:
     paths: ['pim-app/**', '.github/workflows/pim-windows.yml']
+    tags: ['v*']
   workflow_dispatch:
+
+permissions:
+  contents: write # create the release on tags
 
 jobs:
   build:
@@ -11,6 +17,7 @@ jobs:
     defaults:
       run:
         working-directory: pim-app
+        shell: bash
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,12 +25,24 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm test
-      - run: npm run dist
+      - name: Tag must match package.json version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: test "v$(node -p "require('./package.json').version")" = "${GITHUB_REF_NAME}"
+      - name: Build
+        if: "!startsWith(github.ref, 'refs/tags/v')"
+        run: npm run dist
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Build and publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: npm run release
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v4
         with:
           name: Pim-Windows
           path: |
             pim-app/dist/*.exe
+            pim-app/dist/latest.yml
           if-no-files-found: error

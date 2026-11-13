@@ -6,7 +6,7 @@ const fmtBytes = b => (b >= 1e9 ? (b / 1e9).toFixed(2) + ' GB' : b >= 1e6 ? (b /
 const ago = t => { const s = (Date.now() - t) / 1000; return s < 60 ? 'gerade eben' : s < 3600 ? `vor ${Math.floor(s / 60)} min` : `vor ${Math.floor(s / 3600)} h`; };
 const appName = id => (id || '').split(/[!\\/]/).pop().replace(/\.exe$/i, '').replace(/^.*\.(?=[^.]+$)/, '') || 'Player';
 
-const state = { media: null, steam: [], clips: [], uploads: new Map(), flash: null, lastActivity: Date.now(), look: [0, 0.15], sys: null, bt: [], pc: null, prefs: { acc: 'auto', color: null, gameMode: true }, note: null };
+const state = { media: null, steam: [], clips: [], uploads: new Map(), flash: null, lastActivity: Date.now(), look: [0, 0.15], sys: null, bt: [], pc: null, prefs: { acc: 'auto', color: null, gameMode: true }, note: null, update: null };
 const touch = () => { state.lastActivity = Date.now(); };
 
 /* ---------- open / close ---------- */
@@ -203,6 +203,31 @@ function renderLook() {
   $('pGame').checked = state.prefs.gameMode;
 }
 async function savePrefs(p) { state.prefs = await pim.setPrefs(p); renderLook(); }
+/* ---------- updates ---------- */
+function renderUpdate() {
+  const u = state.update;
+  if (!u) return;
+  const v = `Version ${u.version}`;
+  const [text, btn] = {
+    idle: [`${v}`, 'Nach Updates suchen'],
+    checking: [`${v} · suche nach Updates …`, null],
+    current: [`${v} ist aktuell.`, 'Erneut prüfen'],
+    downloading: [`Lade Version ${u.next} … ${u.percent || 0} %`, null],
+    ready: [`Version ${u.next} ist bereit.`, 'Jetzt neu starten'],
+    portable: [`Version ${u.next} ist da. Die portable Version kann sich nicht selbst aktualisieren: einmal Pim-Setup installieren, danach kommen Updates automatisch.`, 'Herunterladen'],
+    error: [`Update-Prüfung fehlgeschlagen: ${u.message}`, 'Erneut prüfen'],
+    dev: [`${v} · ${u.message}`, null],
+  }[u.status] || [v, null];
+  $('uText').textContent = text;
+  $('uBtn').hidden = !btn;
+  if (btn) $('uBtn').textContent = btn;
+}
+$('uBtn').addEventListener('click', () => (['ready', 'portable'].includes(state.update.status) ? pim.updateInstall() : pim.updateCheck()));
+pim.onUpdate(u => {
+  if (u.status === 'ready' && (!state.update || state.update.status !== 'ready')) { touch(); flash('proud', 3000); }
+  state.update = u; renderUpdate();
+});
+
 $('pAcc').addEventListener('change', e => savePrefs({ acc: e.target.value }));
 $('pGame').addEventListener('change', e => savePrefs({ gameMode: e.target.checked }));
 
@@ -322,6 +347,7 @@ function statusLine() {
   if (state.steam.length) { const d = state.steam[0]; return `⬇ ${d.name} ${Math.floor((d.done / d.total) * 100)} %`; }
   const m = state.media;
   if (m && m.active && m.title) return `${m.title}${m.artist ? ' – ' + m.artist : ''}`;
+  if (state.update && state.update.status === 'ready') return `Update ${state.update.next} bereit – im Tab „Pim“ neu starten`;
   return '';
 }
 
@@ -364,8 +390,8 @@ setTab('music');
 fillForm();
 pim.targets().then(t => { targets = t; renderTargets(); });
 pim.snapshot().then(s => {
-  Object.assign(state, { media: s.media, steam: s.steam || [], clips: s.clips || [], sys: s.sys, bt: s.bt || [], prefs: s.prefs || state.prefs });
-  renderMedia(); renderSteam(); renderClips(); renderSys(); renderBattery(); renderLook();
+  Object.assign(state, { update: s.update, media: s.media, steam: s.steam || [], clips: s.clips || [], sys: s.sys, bt: s.bt || [], prefs: s.prefs || state.prefs });
+  renderMedia(); renderSteam(); renderClips(); renderSys(); renderBattery(); renderLook(); renderUpdate();
 });
 setInterval(renderClips, 60000); // refresh "vor x min"
 requestAnimationFrame(loop);

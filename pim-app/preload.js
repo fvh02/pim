@@ -4,7 +4,9 @@ const on = ch => cb => ipcRenderer.on(ch, (_e, data) => cb(data));
 contextBridge.exposeInMainWorld('pim', {
   expand: on => ipcRenderer.send('expand', on),
   snapshot: () => ipcRenderer.invoke('snapshot'),
-  onMedia: on('media'), onSteam: on('steam'), onClips: on('clips'), onUpload: on('upload'), onSys: on('sys'), onBt: on('bt'),
+  onMedia: on('media'), onSteam: on('steam'), onClips: on('clips'), onUpload: on('upload'), onSys: on('sys'), onBt: on('bt'), onUpdate: on('update'),
+  updateCheck: () => ipcRenderer.send('update:check'),
+  updateInstall: () => ipcRenderer.send('update:install'),
   media: cmd => ipcRenderer.send('media', cmd),
   volume: v => ipcRenderer.send('volume', v),
   mute: on => ipcRenderer.send('mute', on),

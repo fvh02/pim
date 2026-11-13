@@ -35,7 +35,13 @@ Cloud-Dienste laufen über ihre Sync-Ordner. Pim kopiert die Datei hinein, die H
 
 ## Benutzen
 
-`Pim-<version>-portable.exe` starten. Pim erscheint oben in der Mitte des Hauptbildschirms und im Infobereich der Taskleiste. Ein Rechtsklick auf das Tray-Symbol bietet „Pim anzeigen“, „Mit Windows starten“ und „Beenden“. `Esc` klappt die Island zu.
+`Pim-Setup-<version>.exe` einmal installieren. Admin-Rechte braucht es nicht, Pim landet im Benutzerprofil. Pim erscheint oben in der Mitte des Hauptbildschirms und im Infobereich der Taskleiste. Ein Rechtsklick auf das Tray-Symbol bietet „Pim anzeigen“, „Nach Updates suchen“, „Mit Windows starten“ und „Beenden“. `Esc` klappt die Island zu.
+
+### Updates
+
+Die installierte Version prüft 15 Sekunden nach dem Start und danach alle 6 Stunden, ob es auf GitHub ein neues Release gibt. Ein Update lädt sie im Hintergrund. Ist es fertig, zeigt die Pille „Update … bereit“. Im Tab „Pim“ startet „Jetzt neu starten“ die Installation. Ohne Klick wird das Update beim nächsten Beenden installiert. Deinstallieren ist nie nötig, Einstellungen, Speicherorte und angeheftete Einträge bleiben erhalten.
+
+Die portable `.exe` kann sich nicht selbst ersetzen. Sie meldet neue Versionen nur und verlinkt den Download. Wer automatische Updates will, installiert einmal `Pim-Setup`.
 
 ## Entwickeln
 
@@ -49,12 +55,28 @@ npm run dist     # Windows-Build nach dist/ (portable .exe und Installer)
 
 Die Windows-Builds entstehen auch automatisch in GitHub Actions (Workflow „Pim Windows build“, Artefakt „Pim-Windows“).
 
+**Neue Version veröffentlichen:**
+
+1. `version` in `package.json` erhöhen, z. B. auf `0.4.0`, und committen.
+2. Passendes Tag setzen und pushen:
+
+```bash
+git tag v0.4.0
+```
+
+```bash
+git push origin v0.4.0
+```
+
+GitHub Actions baut dann unter Windows, veröffentlicht das Release mit `Pim-Setup-0.4.0.exe`, portabler `.exe` und `latest.yml`, und alle installierten Pims aktualisieren sich. Tag und Version müssen übereinstimmen, sonst bricht der Workflow ab.
+
 | Datei | Inhalt |
 |---|---|
 | `main.js` | Fenster am oberen Rand, Tray, Einstellungen, Zwischenablage, IPC |
 | `preload.js` | sichere Brücke zur Oberfläche |
 | `lib/bridge.ps1`, `lib/bridge.js` | Windows-Brücke (PowerShell, keine Zusatzpakete): Mediensteuerung (SMTC), Systemlautstärke, Vollbild-Erkennung, Zwischenablage-Zähler |
 | `lib/battery.js` | Bluetooth-Akkustände |
+| `lib/updater.js` | Selbst-Update über GitHub Releases |
 | `lib/steam.js` | Steam-Bibliotheken finden und Manifeste lesen |
 | `lib/upload.js` | Upload in Ordner/SMB und per WebDAV |
 | `src/pim.js` | Pim zeichnen (Canvas, ohne Bilder) |

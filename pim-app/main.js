@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const os = require('os');
 const bridge = require('./lib/bridge');
 const battery = require('./lib/battery');
+const updater = require('./lib/updater');
 const steam = require('./lib/steam');
 const upload = require('./lib/upload');
 
@@ -77,6 +78,9 @@ function createTray() {
   tray.setToolTip('Pim');
   const build = () => Menu.buildFromTemplate([
     { label: 'Pim anzeigen', type: 'checkbox', checked: !userHidden, click: i => { userHidden = !i.checked; applyVisibility(); } },
+    upd.get().status === 'ready'
+      ? { label: `Update ${upd.get().next} installieren und neu starten`, click: () => upd.install() }
+      : { label: 'Nach Updates suchen', click: () => upd.check() },
     { label: 'Mit Windows starten', type: 'checkbox', checked: app.getLoginItemSettings().openAtLogin, click: i => app.setLoginItemSettings({ openAtLogin: i.checked }) },
     { type: 'separator' },
     { label: 'Beenden', click: () => app.quit() },
@@ -197,6 +201,8 @@ function ipc() {
     runUploads([file]);
   });
 
+  ipcMain.on('update:check', () => upd.check());
+  ipcMain.on('update:install', () => upd.install());
   ipcMain.on('volume', (_e, v) => { if (typeof v === 'number') sys.send(['vol', v]); });
   ipcMain.on('mute', (_e, on) => sys.send(['mute', !!on]));
   ipcMain.handle('prefs:set', (_e, p) => {
@@ -208,7 +214,7 @@ function ipc() {
     return next;
   });
 
-  ipcMain.handle('snapshot', () => ({ ...snap, clips: clips.map(({ img, ...c }) => c), prefs: settings.prefs }));
+  ipcMain.handle('snapshot', () => ({ ...snap, update: upd.get(), clips: clips.map(({ img, ...c }) => c), prefs: settings.prefs }));
   ipcMain.handle('targets:list', () => publicTargets());
   ipcMain.handle('targets:presets', () => upload.presets());
   ipcMain.handle('targets:save', (_e, t, pass) => {
@@ -260,6 +266,7 @@ function ipc() {
 }
 
 let sys = { send() {}, stop() {} };
+let upd = { check() {}, install() {}, get: () => ({ status: 'idle', version: app.getVersion() }) };
 const snap = { media: null, steam: [], sys: null, bt: [] }; // last values, for a renderer that (re)loads late
 let bridgeSeen = 0, clipSeq = null;
 app.whenReady().then(() => {
@@ -277,6 +284,7 @@ app.whenReady().then(() => {
   });
   steam.watch(list => { snap.steam = list; send('steam', list); });
   battery.watch(list => { snap.bt = list; send('bt', list); });
+  upd = updater.start(u => send('update', u));
   setInterval(() => { if (Date.now() - bridgeSeen > 3000) pollClipboard(); }, 700); // fallback without the bridge
 });
 app.on('second-instance', () => { userHidden = false; applyVisibility(); });

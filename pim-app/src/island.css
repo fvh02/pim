@@ -135,3 +135,8 @@ form label:first-child, .hint, .actions, .msg, label[data-for="folder"], label[d
 .swatch { width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent; padding: 0; }
 .swatch[aria-pressed="true"] { border-color: var(--fg); }
 .swatches input[type=color] { width: 30px; height: 28px; border: 0; background: none; padding: 0; }
+
+/* updates */
+.update { display: flex; align-items: center; gap: 10px; color: var(--fg); font-size: 13px; }
+.update span { flex: 1; min-width: 0; }
+.ubtn { background: var(--accent); border: 0; color: #07101f; border-radius: 8px; padding: 5px 12px; font-weight: 600; flex: none; }

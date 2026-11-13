@@ -1,7 +1,7 @@
 {
   "name": "pim",
   "productName": "Pim",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Pim: Notch-Island am oberen Bildschirmrand für Windows. Musiksteuerung, Zwischenablage, Steam-Downloads, Datei-Upload.",
   "main": "main.js",
   "license": "UNLICENSED",
@@ -9,7 +9,8 @@
   "scripts": {
     "start": "electron .",
     "test": "node test/test.js",
-    "dist": "electron-builder --win portable nsis --x64"
+    "dist": "electron-builder --win nsis portable --x64 --publish never",
+    "release": "electron-builder --win nsis portable --x64 --publish always"
   },
   "devDependencies": {
     "electron": "33.2.1",
@@ -18,11 +19,42 @@
   "build": {
     "appId": "de.pim.island",
     "productName": "Pim",
-    "files": ["main.js", "preload.js", "lib/**", "src/**", "assets/**"],
-    "asarUnpack": ["lib/*.ps1"],
-    "win": { "icon": "assets/icon.png" },
-    "nsis": { "oneClick": true, "perMachine": false },
-    "portable": { "artifactName": "Pim-${version}-portable.exe" },
-    "directories": { "output": "dist" }
+    "files": [
+      "main.js",
+      "preload.js",
+      "lib/**",
+      "src/**",
+      "assets/**"
+    ],
+    "asarUnpack": [
+      "lib/*.ps1"
+    ],
+    "win": {
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "artifactName": "Pim-Setup-${version}.exe"
+    },
+    "portable": {
+      "artifactName": "Pim-${version}-portable.exe"
+    },
+    "directories": {
+      "output": "dist"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "fvh02",
+      "repo": "pim",
+      "releaseType": "release"
+    }
+  },
+  "dependencies": {
+    "electron-updater": "6.3.9"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fvh02/pim.git"
   }
 }
